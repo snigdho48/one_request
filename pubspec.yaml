@@ -1,0 +1,21 @@
+name: one_request
+description: Handle http request and error and loading at a time.
+version: 0.0.1
+homepage: https://github.com/snigdho48/one_request
+repository: https://github.com/snigdho48/one_request/
+
+environment:
+  sdk: '>=3.0.1 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.2.1
+  either_dart: ^1.0.0
+  flutter_easyloading: ^3.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
