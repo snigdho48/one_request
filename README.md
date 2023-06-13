@@ -49,6 +49,18 @@ to `/test` folder for example.
     indicatorColor: Colors.red,                         // <----- Loading Indicator Colour
     progressColor: Colors.red,                          // <----- Pogress Indicator Colour
     textColor: Colors.red,                              // <----- Text Color
+    success : const Icon(                               // <----- Success Widget
+        Icons.check,
+        color: Colors.green,
+      ),
+      error : const Icon(                               // <----- Error Widget
+        Icons.error,
+        color: Colors.red,
+      ),
+      info : const Icon(                                // <----- Info Widget
+        Icons.info,
+        color: Colors.blue,
+      ),
   );
 ```
 
