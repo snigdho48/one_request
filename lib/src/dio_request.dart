@@ -7,7 +7,28 @@ import 'package:one_request/src/resourses/utils.dart';
 
 import 'model/error.dart';
 
+enum esponseType {
+  /// Transform the response data to JSON object only when the
+  /// content-type of response is "application/json" .
+  json,
 
+  /// Get the response stream without any transformation. The
+  /// Response data will be a [ResponseBody] instance.
+  ///
+  ///    Response<ResponseBody> rs = await Dio().get<ResponseBody>(
+  ///      url,
+  ///      options: Options(
+  ///        responseType: ResponseType.stream,
+  ///      ),
+  ///    );
+  stream,
+
+  /// Transform the response data to a String encoded with UTF8.
+  plain,
+
+  /// Get original bytes, the type of [Response.data] will be List<int>
+  bytes
+}
 
 // ignore: camel_case_types
 abstract class basehttpRequest {
@@ -19,10 +40,11 @@ abstract class basehttpRequest {
   Map<String, String>? header;
   int? maxRedirects = 1;
   int timeout = 60;
-  Function? loadingWidget = loading;
-  Function? loadingconfig = configLoading;
+  Function? loadingWidget = loadingStuff.loading;
+  Function? loadingconfig = loadingStuff.configLoading;
   Function? dismiss;
-  ResponseType responsetype = ResponseType.json;
+  String responsetype = 'json';
+  String contentType = 'application/json';
 
   basehttpRequest({
     this.body,
@@ -33,7 +55,8 @@ abstract class basehttpRequest {
     this.header,
     this.maxRedirects,
     this.timeout = 60,
-    this.responsetype = ResponseType.json,
+    this.responsetype = 'json',
+    this.contentType = 'application/json',
   }) {
     _httpequest(
       body: body,
@@ -45,7 +68,7 @@ abstract class basehttpRequest {
       maxRedirects: maxRedirects,
       timeout: timeout,
       responsetype: responsetype,
-
+      contentType: contentType,
     );
   }
 
@@ -53,14 +76,24 @@ abstract class basehttpRequest {
     Map<String, dynamic>? body,
     Map<String, dynamic>? queryParameters,
     bool formData = false,
-    ResponseType? responsetype = ResponseType.json,
+    String? responsetype = 'json',
     required String url,
     required String method,
     Map<String, String>? header,
     int? maxRedirects = 1,
+    String contentType = 'application/json',
     int timeout = 60,
     Options? options,
   }) async {
+    ResponseType typeOfResponce = responsetype == 'json'
+        ? ResponseType.json
+        : responsetype == 'stream'
+            ? ResponseType.stream
+            : responsetype == 'plain'
+                ? ResponseType.plain
+                : responsetype == 'bytes'
+                    ? ResponseType.bytes
+                    : ResponseType.json;
     final dio = Dio();
     loadingconfig;
     loadingWidget;
@@ -76,7 +109,8 @@ abstract class basehttpRequest {
       queryParameters: queryParameters,
       options: options ??
           Options(
-            responseType: responsetype,
+            contentType: contentType,
+            responseType: typeOfResponce,
             followRedirects: maxRedirects != 1 ? true : false,
             method: method,
             headers: headers,

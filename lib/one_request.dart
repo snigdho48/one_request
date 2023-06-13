@@ -19,6 +19,10 @@ class oneRequest extends basehttpRequest {
     Color? indicatorColor,
     Color? textColor,
   })? config;
+    @override
+  Function? get loadingWidget => loader ?? super.loadingWidget;
+  @override
+  Function? get loadingconfig => config ?? super.loadingconfig;
   oneRequest(
       {required super.url,
       required super.method,
@@ -28,9 +32,9 @@ class oneRequest extends basehttpRequest {
       super.header,
       super.maxRedirects,
       super.timeout,
-      super.responsetype});
-  @override
-  Function? get loadingWidget => loader ?? super.loadingWidget;
-  @override
-  Function? get loadingconfig => config ?? super.loadingconfig;
+      super.responsetype,
+      super.contentType,
+      
+      });
+
 }
