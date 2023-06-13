@@ -20,7 +20,7 @@ class LoadingStuff {
 
   static get initLoading => EasyLoading.init();
 
-  static void configLoading(
+  static configLoading(
       {Widget? indicator,
       Widget? success,
       Widget? error,
@@ -29,7 +29,7 @@ class LoadingStuff {
       Color? backgroundColor,
       Color? indicatorColor,
       Color? textColor}) {
-    EasyLoading.instance
+    return EasyLoading.instance
       ..successWidget = success ??
           const Icon(
             Icons.check,
