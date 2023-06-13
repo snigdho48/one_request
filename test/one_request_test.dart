@@ -79,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             Text(
               // Response value
-              '$_counter',
+              _counter,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
           ],
