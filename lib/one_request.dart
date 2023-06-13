@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 
 import 'src/dio_request.dart';
 
+
 class oneRequest extends basehttpRequest {
+
   static Function({
     String? status,
     Color? color,
@@ -26,7 +28,7 @@ class oneRequest extends basehttpRequest {
       super.header,
       super.maxRedirects,
       super.timeout,
-      super.options});
+      super.responsetype});
   @override
   Function? get loadingWidget => loader ?? super.loadingWidget;
   @override

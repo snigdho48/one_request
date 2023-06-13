@@ -7,6 +7,8 @@ import 'package:one_request/src/resourses/utils.dart';
 
 import 'model/error.dart';
 
+
+
 // ignore: camel_case_types
 abstract class basehttpRequest {
   Map<String, dynamic>? body;
@@ -17,10 +19,10 @@ abstract class basehttpRequest {
   Map<String, String>? header;
   int? maxRedirects = 1;
   int timeout = 60;
-  Options? options;
   Function? loadingWidget = loading;
   Function? loadingconfig = configLoading;
   Function? dismiss;
+  ResponseType responsetype = ResponseType.json;
 
   basehttpRequest({
     this.body,
@@ -31,7 +33,7 @@ abstract class basehttpRequest {
     this.header,
     this.maxRedirects,
     this.timeout = 60,
-    this.options,
+    this.responsetype = ResponseType.json,
   }) {
     _httpequest(
       body: body,
@@ -42,7 +44,8 @@ abstract class basehttpRequest {
       header: header,
       maxRedirects: maxRedirects,
       timeout: timeout,
-      options: options,
+      responsetype: responsetype,
+
     );
   }
 
@@ -50,6 +53,7 @@ abstract class basehttpRequest {
     Map<String, dynamic>? body,
     Map<String, dynamic>? queryParameters,
     bool formData = false,
+    ResponseType? responsetype = ResponseType.json,
     required String url,
     required String method,
     Map<String, String>? header,
@@ -72,6 +76,7 @@ abstract class basehttpRequest {
       queryParameters: queryParameters,
       options: options ??
           Options(
+            responseType: responsetype,
             followRedirects: maxRedirects != 1 ? true : false,
             method: method,
             headers: headers,
