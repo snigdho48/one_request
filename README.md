@@ -26,14 +26,19 @@ to `/test` folder for example.
 
 ```dart
     oneRequest(
-      url: 'https://google.com', <------ URL
-      method: 'GET',             <------ Method ('GET','POST','PUT','DELETE',)
-      header: {'test': 'test'},  <------ Header data Map<String,dynamic> (Optional)
-      body: {'test': 'test'},    <------ Body data Map<String,dynamic> (Optional)
+      url: 'https://google.com', // <------ URL
+      method: 'GET',             // <------ Method ('GET','POST','PUT','DELETE',)
+      header: {'test': 'test'},  // <------ Header data Map<String,dynamic> (Optional)
+      body: {'test': 'test'},    // <------ Body data Map<String,dynamic> (Optional)
+      formData: false,           // <------ Boolean value , true is FormData, Default is false (Optional)
+      maxRedirects: 1,           // <------ MaxRedirect count, Default is 1 (Optional)
+      timeout: 60,               // <------ Request Timeout, Default is 60 Second (Optional)
     );
 ```
 
 ## Additional information
+
+
 
 # loading can be modified 
 ```dart
