@@ -16,7 +16,7 @@ and the Flutter guide for
 
 ### Features
 
-#### Package used **Dio** ,**Easyloading**, **Either**. Thanks All of them.
+#### Package used **dio** ,**flutter_easyloading**, **either_dart**. Thanks All of them.
 
 
 ## Usage
@@ -28,7 +28,8 @@ Add `oneRequest.loadingconfig` under `main()` and async it.
 
 ```dart
 void main() async {
-  oneRequest.loadingconfig;               // <------- Add here
+  // Add Here
+  oneRequest.loadingconfig;
   runApp(const MyApp());
 }
 ```
@@ -39,6 +40,7 @@ Add `oneRequest.initLoading` under `runapp()` before Materialapp
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      // Add as Builder
       builder: oneRequest.initLoading,
       title: 'Flutter Demo one_request',
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
@@ -49,17 +51,31 @@ Add `oneRequest.initLoading` under `runapp()` before Materialapp
  Call api example:
 
 ```dart
+// Create an instance
   final request = oneRequest();
+  // store the respone 
   var value = await request.send(
-      url: 'https://google.com',            // <------ URL
-      method: 'GET',                        // <------ Method ('GET','POST','PUT','DELETE',)
-      header: {'test': 'test'},             // <------ Header data Map<String,dynamic> (Optional)
-      body: {'test': 'test'},               // <------ Body data Map<String,dynamic> (Optional)
-      formData: false,                      // <------ Boolean value , true is FormData, Default is false (Optional)
-      maxRedirects: 1,                      // <------ MaxRedirect count, Default is 1 (Optional)
-      timeout: 60,                          // <------ Request Timeout, Default is 60 Second (Optional)
-      contentType:  'application/json',     // <------ ContentType, Default is 'application/json' (Optional)
-      responseType: 'json',                 // <------ ['stream','json','plain','bytes'], Default is 'json' (Optional)
+      // Url requared
+      url: 'https://google.com',
+      // Method ('GET','POST','PUT','DELETE',)           
+      method: 'GET', 
+      // Header data Map<String,dynamic> (Optional)                      
+      header: {'test': 'test'},   
+      // Body data Map<String,dynamic> (Optional)          
+      body: {'test': 'test'},    
+      // Boolean value , true is FormData, Default is false (Optional)           
+      formData: false, 
+      //MaxRedirect count, Default is 1 (Optional)
+      maxRedirects: 1, 
+      // Request Timeout, Default is 60 Second (Optional)                     
+      timeout: 60,  
+      //  ContentType, Default is 'application/json' (Optional)                       
+      contentType:  'application/json',
+      // ['stream','json','plain','bytes'], Default is 'json' (Optional)    
+      responseType: 'json', 
+      // If responce type is {'status':success,'message': 'text','data':[]} or indner  content containing all response in 'data' key the make it true,initialy false
+      innderData : false,
+
     );
 ```
 
@@ -69,21 +85,30 @@ Add `oneRequest.initLoading` under `runapp()` before Materialapp
 ### loading Config can be modified 
 
 ```dart
+  // Custom loadibg Configuration
   oneRequest.loadingconfig(
-    backgroundColor: Colors.amber,                      // <----- BackgroundColor of loading
-    indicator: const CircularProgressIndicator(),       // <----- Widget
-    indicatorColor: Colors.red,                         // <----- Loading Indicator Colour
-    progressColor: Colors.red,                          // <----- Pogress Indicator Colour
-    textColor: Colors.red,                              // <----- Text Color
-    success : const Icon(                               // <----- Success Widget
+    // BackgroundColor of loading
+    backgroundColor: Colors.amber,   
+    // Loading indicator Widget                   
+    indicator: const CircularProgressIndicator(), 
+    //  Loading Indicator Colour      
+    indicatorColor: Colors.red,  
+    // Progress Indicator Colour                       
+    progressColor: Colors.red,  
+    // Text Color                        
+    textColor: Colors.red,  
+    // Success Widget                            
+    success : const Icon(                              
         Icons.check,
         color: Colors.green,
       ),
-      error : const Icon(                               // <----- Error Widget
+      // Error Widget
+      error : const Icon(                              
         Icons.error,
         color: Colors.red,
       ),
-      info : const Icon(                                // <----- Info Widget
+      // Info Widget
+      info : const Icon(                               
         Icons.info,
         color: Colors.blue,
       ),
@@ -93,8 +118,11 @@ Add `oneRequest.initLoading` under `runapp()` before Materialapp
 ### loading Widget Only can be modified 
 
 ```dart
+// only loading indictor Customize
   oneRequest.loadingconfig(
-    indicator: const CircularProgressIndicator(),       // <----- Widget
-    status: 'loading',                                  // <----- Text 
+    // Widget
+    indicator: const CircularProgressIndicator(),    
+    // Text   
+    status: 'loading',                                  
   );
 ```
