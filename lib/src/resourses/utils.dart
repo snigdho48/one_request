@@ -17,11 +17,29 @@ class loadingStuff {
 
   static void configLoading(
       {Widget? indicator,
+      Widget? success,
+      Widget? error,
+      Widget? info,
       Color? progressColor,
       Color? backgroundColor,
       Color? indicatorColor,
       Color? textColor}) {
     EasyLoading.instance
+      ..successWidget = success ??
+          const Icon(
+            Icons.check,
+            color: Colors.green,
+          )
+      ..errorWidget = error ??
+          const Icon(
+            Icons.error,
+            color: Colors.red,
+          )
+      ..infoWidget = info ??
+          const Icon(
+            Icons.info,
+            color: Colors.blue,
+          )
       ..indicatorType = EasyLoadingIndicatorType.fadingCircle
       ..loadingStyle = EasyLoadingStyle.custom
       ..maskType = EasyLoadingMaskType.black

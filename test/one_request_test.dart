@@ -15,6 +15,18 @@ void main() {
     indicatorColor: Colors.red,
     progressColor: Colors.red,
     textColor: Colors.red,
+    error: const Icon(
+      Icons.error,
+      color: Colors.red,
+    ),
+    success: const Icon(
+      Icons.check,
+      color: Colors.green,
+    ),
+    info: const Icon(
+      Icons.info,
+      color: Colors.blue,
+    ),
   );
   oneRequest.loader!(
     indicator: const CircularProgressIndicator(),
