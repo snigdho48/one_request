@@ -24,8 +24,33 @@ and the Flutter guide for
 Include short and useful examples for package users. Navigate
 to `/test` folder for example.
 
+Add `oneRequest.loadingconfig` under `main()` and async it.
+
 ```dart
-    oneRequest(
+void main() async {
+  oneRequest.loadingconfig;               // <------- Add here
+  runApp(const MyApp());
+}
+```
+
+Add `oneRequest.initLoading` under `runapp()` before Materialapp
+
+```dart
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      builder: oneRequest.initLoading,
+      title: 'Flutter Demo one_request',
+      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    );
+  }
+```
+
+ Call api example:
+
+```dart
+  final request = oneRequest();
+  var value = await request.send(
       url: 'https://google.com',            // <------ URL
       method: 'GET',                        // <------ Method ('GET','POST','PUT','DELETE',)
       header: {'test': 'test'},             // <------ Header data Map<String,dynamic> (Optional)
@@ -42,8 +67,9 @@ to `/test` folder for example.
 
 
 ### loading Config can be modified 
+
 ```dart
-  oneRequest.config!(                               
+  oneRequest.loadingconfig(
     backgroundColor: Colors.amber,                      // <----- BackgroundColor of loading
     indicator: const CircularProgressIndicator(),       // <----- Widget
     indicatorColor: Colors.red,                         // <----- Loading Indicator Colour
@@ -65,8 +91,9 @@ to `/test` folder for example.
 ```
 
 ### loading Widget Only can be modified 
+
 ```dart
-  oneRequest.loader!(
+  oneRequest.loadingconfig(
     indicator: const CircularProgressIndicator(),       // <----- Widget
     status: 'loading',                                  // <----- Text 
   );

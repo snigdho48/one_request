@@ -18,9 +18,7 @@ class LoadingStuff {
     );
   }
 
-  static get initLoading => EasyLoading.init();
-
-  static configLoading(
+  static void configLoad(
       {Widget? indicator,
       Widget? success,
       Widget? error,
@@ -29,7 +27,28 @@ class LoadingStuff {
       Color? backgroundColor,
       Color? indicatorColor,
       Color? textColor}) {
-    return EasyLoading.instance
+    WidgetsFlutterBinding.ensureInitialized();
+    EasyLoading.instance
+      ..indicatorType = EasyLoadingIndicatorType.fadingCircle
+      ..loadingStyle = EasyLoadingStyle.custom
+      ..maskType = EasyLoadingMaskType.black
+      ..indicatorSize = 45.0
+      ..radius = 10.0
+      ..progressColor = progressColor ?? Colors.white
+      ..backgroundColor = backgroundColor ?? Colors.black
+      ..indicatorColor = indicatorColor ?? Colors.white
+      ..textColor = textColor ?? Colors.pink
+      ..maskColor = Colors.blue.withOpacity(0.5)
+      ..userInteractions = false
+      ..dismissOnTap = false
+      ..indicatorWidget = indicator ??
+          const SizedBox(
+            width: 150,
+            child: SpinKitWave(
+              color: Colors.blue,
+              size: 50.0,
+            ),
+          )
       ..successWidget = success ??
           const Icon(
             Icons.check,
@@ -44,19 +63,8 @@ class LoadingStuff {
           const Icon(
             Icons.info,
             color: Colors.blue,
-          )
-      ..indicatorType = EasyLoadingIndicatorType.fadingCircle
-      ..loadingStyle = EasyLoadingStyle.custom
-      ..maskType = EasyLoadingMaskType.black
-      ..indicatorSize = 45.0
-      ..radius = 10.0
-      ..progressColor = progressColor ?? Colors.pink
-      ..backgroundColor = backgroundColor ?? Colors.white
-      ..indicatorColor = indicatorColor ?? Colors.pink
-      ..textColor = textColor ?? Colors.pink
-      ..maskColor = Colors.blue.withOpacity(0.5)
-      ..userInteractions = false
-      ..dismissOnTap = false
-      ..indicatorWidget = indicator ?? loading();
+          );
   }
+
+  static get initLoading => EasyLoading.init();
 }
