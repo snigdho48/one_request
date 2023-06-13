@@ -9,45 +9,34 @@ import 'model/error.dart';
 
 // ignore: camel_case_types
 abstract class basehttpRequest {
-  Map<String, dynamic>? body;
-  Map<String, dynamic>? queryParameters;
-  bool formData = false;
-  String url;
-  String method;
-  Map<String, String>? header;
-  int? maxRedirects = 1;
-  int timeout = 60;
-  Function? loadingWidget = loadingStuff.loading;
-  Function? loadingconfig = loadingStuff.configLoading;
-  Function? dismiss;
-  String responsetype = 'json';
-  String contentType = 'application/json';
+  // ignore: non_constant_identifier_names
 
-  basehttpRequest({
-    this.body,
-    this.queryParameters,
-    this.formData = false,
-    required this.url,
-    required this.method,
-    this.header,
-    this.maxRedirects,
-    this.timeout = 60,
-    this.responsetype = 'json',
-    this.contentType = 'application/json',
-  }) {
-    _httpequest(
-      body: body,
-      queryParameters: queryParameters,
-      url: url,
-      formData: formData,
-      method: method,
-      header: header,
-      maxRedirects: maxRedirects,
-      timeout: timeout,
-      responsetype: responsetype,
-      contentType: contentType,
-    );
-  }
+  Future<Either<dynamic, CustomExceptionHandlers>> send({
+    Map<String, dynamic>? body,
+    Map<String, dynamic>? queryParameters,
+    bool formData = false,
+    String? responsetype = 'json',
+    required String url,
+    required String method,
+    Map<String, String>? header,
+    int? maxRedirects = 1,
+    String contentType = 'application/json',
+    int timeout = 60,
+    bool innderData = false,
+  }) =>
+      _httpequest(
+        body: body,
+        queryParameters: queryParameters,
+        url: url,
+        formData: formData,
+        method: method,
+        header: header,
+        maxRedirects: maxRedirects,
+        timeout: timeout,
+        responsetype: responsetype,
+        contentType: contentType,
+        innderData: innderData,
+      );
 
   Future<Either<dynamic, CustomExceptionHandlers>> _httpequest({
     Map<String, dynamic>? body,
@@ -61,6 +50,7 @@ abstract class basehttpRequest {
     String contentType = 'application/json',
     int timeout = 60,
     Options? options,
+    bool innderData = false,
   }) async {
     ResponseType typeOfResponce = responsetype == 'json'
         ? ResponseType.json
@@ -72,8 +62,7 @@ abstract class basehttpRequest {
                     ? ResponseType.bytes
                     : ResponseType.json;
     final dio = Dio();
-    loadingconfig;
-    loadingWidget;
+    loadingStuff.loading();
     var headers = header ??
         {
           'Content-Type': 'application/json',
@@ -111,55 +100,24 @@ abstract class basehttpRequest {
     );
 
     EasyLoading.dismiss();
+
     if (response.statusCode == 200) {
       final Map<String, dynamic> responseJson = await response.data;
-      try {
-        if (responseJson['status'] == false) {
-          EasyLoading.showError(responseJson['message']);
-
-          return Right(
-            CustomExceptionHandlers(
-              error: responseJson['message'],
-            ),
-          );
-        } else {
-          EasyLoading.showSuccess(responseJson['message']);
-          return Left(responseJson);
-        }
-      } catch (e) {
+      if (innderData) {
         try {
-          if (responseJson['success'] == false) {
-            EasyLoading.showError(responseJson['message']);
-
-            return Right(
-              CustomExceptionHandlers(
-                error: responseJson['message'],
-              ),
-            );
+          if (responseJson['data'] != null && responseJson['data'] != '') {
+            return Left(responseJson['data']);
           } else {
-            EasyLoading.showSuccess(responseJson['message']);
-            return Left(responseJson);
+            EasyLoading.showError(responseJson['message'].toString());
+            return Right(responseJson['message']);
           }
         } catch (e) {
-          try {
-            if (responseJson['data'] == null || responseJson['data'] == []) {
-              EasyLoading.showError(responseJson['message']);
-
-              return Right(
-                CustomExceptionHandlers(
-                  error: responseJson['message'],
-                ),
-              );
-            } else {
-              EasyLoading.showSuccess(responseJson['message']);
-              return Left(responseJson);
-            }
-          } catch (e) {
-            EasyLoading.showError(e.toString());
-            return Right(CustomExceptionHandlers(error: e.toString()));
-          }
+          EasyLoading.showError(e.toString());
+          return Right(CustomExceptionHandlers(error: e.toString()));
         }
       }
+      EasyLoading.showSuccess(response.statusMessage.toString());
+      return Left(responseJson);
     } else {
       EasyLoading.showError(response.statusMessage.toString());
       return Right(CustomExceptionHandlers(error: response.statusMessage));

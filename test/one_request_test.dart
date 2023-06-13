@@ -3,13 +3,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:one_request/one_request.dart';
 
-void main() {
-  oneRequest(
-    url: 'https://jsonplaceholder.typicode.com/todos/1',
+Future<void> main() async {
+  final request = oneRequest();
+  var value = await request.send(
+    url: 'https://catfact.ninja/fact',
     method: 'GET',
     responsetype: 'json',
   );
-  oneRequest.config!(
+  value.fold(
+    (l) => print(l),
+    (r) => print(r),
+  );
+  oneRequest.loadingconfig(
     backgroundColor: Colors.amber,
     indicator: const CircularProgressIndicator(),
     indicatorColor: Colors.red,
@@ -28,7 +33,7 @@ void main() {
       color: Colors.blue,
     ),
   );
-  oneRequest.loader!(
+  oneRequest.loadingWidget(
     indicator: const CircularProgressIndicator(),
     status: 'loading',
   );

@@ -5,15 +5,20 @@ import 'circulerprogressindictor_customize.dart';
 
 class loadingStuff {
   static loading({String? status, Color? color, Widget? indicator}) {
-    EasyLoading.show(
+    return EasyLoading.show(
       status: status ?? 'loading',
       indicator: indicator ??
-          const SpinKitWave(
-            color: Colors.blue,
-            size: 50.0,
+          SizedBox(
+            width: 150,
+            child: SpinKitWave(
+              color: Colors.blue,
+              size: 50.0,
+            ),
           ),
     );
   }
+
+  static get InitLoading => EasyLoading.init();
 
   static void configLoading(
       {Widget? indicator,
