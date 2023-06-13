@@ -11,7 +11,7 @@ import 'model/error.dart';
 abstract class basehttpRequest {
   Map<String, dynamic>? body;
   Map<String, dynamic>? queryParameters;
-  FormData? formData;
+  bool formData = false;
   String url;
   String method;
   Map<String, String>? header;
@@ -25,7 +25,7 @@ abstract class basehttpRequest {
   basehttpRequest({
     this.body,
     this.queryParameters,
-    this.formData,
+    this.formData = false,
     required this.url,
     required this.method,
     this.header,
@@ -36,8 +36,8 @@ abstract class basehttpRequest {
     _httpequest(
       body: body,
       queryParameters: queryParameters,
-      formData: formData,
       url: url,
+      formData: formData,
       method: method,
       header: header,
       maxRedirects: maxRedirects,
@@ -49,7 +49,7 @@ abstract class basehttpRequest {
   Future<Either<dynamic, CustomExceptionHandlers>> _httpequest({
     Map<String, dynamic>? body,
     Map<String, dynamic>? queryParameters,
-    FormData? formData,
+    bool formData = false,
     required String url,
     required String method,
     Map<String, String>? header,
@@ -68,7 +68,7 @@ abstract class basehttpRequest {
     final response = await dio
         .request(
       url,
-      data: body ?? formData,
+      data: formData ? FormData.fromMap(body!) : body,
       queryParameters: queryParameters,
       options: options ??
           Options(
