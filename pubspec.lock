@@ -41,6 +41,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.17.1"
+  dio:
+    dependency: "direct main"
+    description:
+      name: dio
+      sha256: a9d76e72985d7087eb7c5e7903224ae52b337131518d127c554b9405936752b8
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.1+1"
+  either_dart:
+    dependency: "direct main"
+    description:
+      name: either_dart
+      sha256: "0b57f6a9410ce0ba2cc340220109f545bf4bad1b06b242219f0af11ab9e84f0e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   fake_async:
     dependency: transitive
     description:
@@ -54,6 +70,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_easyloading:
+    dependency: "direct main"
+    description:
+      name: flutter_easyloading
+      sha256: ba21a3c883544e582f9cc455a4a0907556714e1e9cf0eababfcb600da191d17c
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.5"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -62,11 +86,27 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.1"
+  flutter_spinkit:
+    dependency: transitive
+    description:
+      name: flutter_spinkit
+      sha256: b39c753e909d4796906c5696a14daf33639a76e017136c8d82bf3e620ce5bb8e
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
     source: sdk
     version: "0.0.0"
+  http_parser:
+    dependency: transitive
+    description:
+      name: http_parser
+      sha256: "2aa08ce0341cc9b354a498388e30986515406668dbcc4f7c950c3e715496693b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.2"
   js:
     dependency: transitive
     description:
@@ -168,6 +208,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.5.1"
+  typed_data:
+    dependency: transitive
+    description:
+      name: typed_data
+      sha256: facc8d6582f16042dd49f2463ff1bd6e2c9ef9f3d5da3d9b087e244a7b564b3c
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.3.2"
   vector_math:
     dependency: transitive
     description:
@@ -178,4 +226,4 @@ packages:
     version: "2.1.4"
 sdks:
   dart: ">=3.0.1 <4.0.0"
-  flutter: ">=1.17.0"
+  flutter: ">=2.0.0"

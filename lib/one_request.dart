@@ -1,9 +1,22 @@
 library one_request;
 
+import 'package:flutter/material.dart';
+
 import 'src/dio_request.dart';
-import 'src/resourses/utils.dart';
 
 class oneRequest extends basehttpRequest {
+  static Function({
+    String? status,
+    Color? color,
+    Widget? indicator,
+  })? loader;
+  static Function({
+    Widget? indicator,
+    Color? progressColor,
+    Color? backgroundColor,
+    Color? indicatorColor,
+    Color? textColor,
+  })? config;
   oneRequest(
       {required super.url,
       required super.method,
@@ -14,4 +27,8 @@ class oneRequest extends basehttpRequest {
       super.maxRedirects,
       super.timeout,
       super.options});
+  @override
+  Function? get loadingWidget => loader ?? super.loadingWidget;
+  @override
+  Function? get loadingconfig => config ?? super.loadingconfig;
 }

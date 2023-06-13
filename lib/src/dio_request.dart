@@ -1,14 +1,14 @@
 import 'dart:core';
 
-import 'package:all_in_one_request/src/resourses/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:either_dart/either.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:one_request/src/resourses/utils.dart';
 
 import 'model/error.dart';
 
 // ignore: camel_case_types
-class basehttpRequest {
+abstract class basehttpRequest {
   Map<String, dynamic>? body;
   Map<String, dynamic>? queryParameters;
   FormData? formData;
@@ -18,6 +18,9 @@ class basehttpRequest {
   int? maxRedirects = 1;
   int timeout = 60;
   Options? options;
+  Function? loadingWidget = loading;
+  Function? loadingconfig = configLoading;
+  Function? dismiss;
 
   basehttpRequest({
     this.body,
@@ -55,7 +58,8 @@ class basehttpRequest {
     Options? options,
   }) async {
     final dio = Dio();
-    loading();
+    loadingconfig;
+    loadingWidget;
     var headers = header ??
         {
           'Content-Type': 'application/json',
