@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,8 +13,8 @@ Future<void> main() async {
     responsetype: 'json',
   );
   value.fold(
-    (l) => print(l),
-    (r) => print(r),
+    (l) => log(l),
+    (r) => log(r.error),
   );
   oneRequest.loadingconfig(
     backgroundColor: Colors.amber,

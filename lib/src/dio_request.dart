@@ -62,7 +62,7 @@ abstract class basehttpRequest {
                     ? ResponseType.bytes
                     : ResponseType.json;
     final dio = Dio();
-    loadingStuff.loading();
+    LoadingStuff.loading();
     var headers = header ??
         {
           'Content-Type': 'application/json',

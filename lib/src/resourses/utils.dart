@@ -3,12 +3,12 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'circulerprogressindictor_customize.dart';
 
-class loadingStuff {
+class LoadingStuff {
   static loading({String? status, Color? color, Widget? indicator}) {
     return EasyLoading.show(
       status: status ?? 'loading',
       indicator: indicator ??
-          SizedBox(
+          const SizedBox(
             width: 150,
             child: SpinKitWave(
               color: Colors.blue,
@@ -18,7 +18,7 @@ class loadingStuff {
     );
   }
 
-  static get InitLoading => EasyLoading.init();
+  static get initLoading => EasyLoading.init();
 
   static void configLoading(
       {Widget? indicator,

@@ -46,6 +46,7 @@ class SpinKitWave extends StatefulWidget {
   final AnimationController? controller;
 
   @override
+  // ignore: library_private_types_in_public_api
   _SpinKitWaveState createState() => _SpinKitWaveState();
 }
 
