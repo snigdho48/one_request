@@ -1,7 +1,13 @@
-## 0.0.1
+## 0.0.3
 
-### initial release
+### - Documentation added
 
 ## 0.0.2
 
 ### Release adding inner jeson content check
+
+### - File input added
+
+## 0.0.1
+
+### initial release

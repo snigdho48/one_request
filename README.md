@@ -34,7 +34,7 @@ void main() async {
 }
 ```
 
-Add `oneRequest.initLoading` under `runapp()` before Materialapp
+Add `oneRequest.initLoading` under `runapp()` inside Materialapp
 
 ```dart
   @override
