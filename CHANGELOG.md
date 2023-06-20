@@ -1,10 +1,15 @@
+## 0.0.4
+
+### - Overlay loading added
+
+### - Optimize code
+
 ## 0.0.3
 
 ### - Documentation added
 
 ### - File input added
 
-### - Overlay loading added
 
 ## 0.0.2
 
