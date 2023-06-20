@@ -3,13 +3,17 @@
 library one_request;
 
 import 'package:flutter/material.dart';
-import 'src/resourses/utils.dart';
-import 'src/dio_request.dart';
 
+import 'src/dio_request.dart';
+import 'src/resourses/utils.dart';
+// main class
 class oneRequest extends basehttpRequest {
+  // Loading config
   static get initLoading => LoadingStuff.initLoading;
+  // Loading config
   static get loading => LoadingStuff.loading;
 
+  // Loading custom
   static loadingWidget({
     String? status,
     Color? color,
@@ -20,6 +24,7 @@ class oneRequest extends basehttpRequest {
         color: color,
         indicator: indicator,
       );
+// Loading config
   static loadingconfig({
     Widget? indicator,
     Color? progressColor,

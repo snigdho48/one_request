@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:one_request/one_request.dart';
 
@@ -39,7 +41,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String _counter = '';
-
+  List<int> filebytes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
   Future<void> _incrementCounter() async {
     // One Request instance create
     final request = oneRequest();
@@ -49,6 +51,15 @@ class _MyHomePageState extends State<MyHomePage> {
       url: 'https://catfact.ninja/fact',
       // Request Method
       method: 'GET',
+      formData: true,
+      body: {
+        'file': [
+          // file  send
+          request.file(file: File('path'), filename: 'file'),
+          request.fileFromByte(filebyte: filebytes),
+          request.fileFormString(filestring: 'fileString'),
+        ],
+      },
     );
 
     setState(() {
@@ -79,7 +90,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             Text(
               // Response value
-              '$_counter',
+              _counter,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
           ],

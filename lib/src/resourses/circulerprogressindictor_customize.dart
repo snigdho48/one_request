@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math show sin, pi;
 
 // ignore: camel_case_types
-
+// start enmu [SpinKitWaveType]
 enum SpinKitWaveType { start, end, center }
+// 
 
 class DelayTween extends Tween<double> {
   DelayTween({double? begin, double? end, required this.delay})

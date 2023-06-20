@@ -1,4 +1,5 @@
 import 'dart:core';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:either_dart/either.dart';
@@ -10,6 +11,24 @@ import 'model/error.dart';
 // ignore: camel_case_types
 abstract class basehttpRequest {
   // ignore: non_constant_identifier_names
+  // filefromByte function
+ MultipartFile fileFromByte({required List<int> filebyte})  =>
+      MultipartFile.fromBytes(
+        filebyte,
+      );
+  // filefromString function
+  MultipartFile fileFormString({required String filestring})  =>
+      MultipartFile.fromString(
+        filestring,
+      );
+// filefromFile function
+ MultipartFile file({required File file, String? filename})  =>
+       MultipartFile.fromFileSync(
+        file.path,
+        filename: filename ?? file.path.split('/').last,
+      );
+
+      // send request function constructor
 
   Future<Either<dynamic, CustomExceptionHandlers>> send({
     Map<String, dynamic>? body,
@@ -37,6 +56,7 @@ abstract class basehttpRequest {
         contentType: contentType,
         innderData: innderData,
       );
+  // main request function
 
   Future<Either<dynamic, CustomExceptionHandlers>> _httpequest({
     Map<String, dynamic>? body,
