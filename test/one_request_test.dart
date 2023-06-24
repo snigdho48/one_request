@@ -6,7 +6,7 @@ import 'package:one_request/one_request.dart';
 // Main App
 void main() async {
   // Loading config Add  esential
-  oneRequest.loadingconfig;
+  oneRequest.loadingconfig();
   runApp(const MyApp());
 }
 
@@ -50,10 +50,10 @@ class _MyHomePageState extends State<MyHomePage> {
       // Request Url
       url: 'https://catfact.ninja/fact',
       // Request Method
-      method: 'GET',
+      method: RequestType.GET,
+
       formData: true,
       body: {
-      
         'file': [
           // file  send
           request.file(file: File('path'), filename: 'file'),
@@ -62,7 +62,6 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       },
     );
-
     setState(() {
       // Response value
       value.fold(
