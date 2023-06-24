@@ -29,7 +29,7 @@ Add `oneRequest.loadingconfig` under `main()` and async it.
 ```dart
 void main() async {
   // Add Here
-  oneRequest.loadingconfig;
+  oneRequest.loadingconfig();
   runApp(const MyApp());
 }
 ```
@@ -58,7 +58,7 @@ Add `oneRequest.initLoading` under `runapp()` inside Materialapp
       // Url requared
       url: 'https://google.com',
       // Method ('GET','POST','PUT','DELETE',)           
-      method: 'GET', 
+      method: RequestType.GET, 
       // Header data Map<String,dynamic> (Optional)                      
       header: {'test': 'test'},   
       // Body data Map<String,dynamic> (Optional)          
@@ -70,9 +70,9 @@ Add `oneRequest.initLoading` under `runapp()` inside Materialapp
       // Request Timeout, Default is 60 Second (Optional)                     
       timeout: 60,  
       //  ContentType, Default is 'application/json' (Optional)                       
-      contentType:  'application/json',
+      contentType:  ContentType.json,
       // ['stream','json','plain','bytes'], Default is 'json' (Optional)    
-      responseType: 'json', 
+      responseType: ResponseType.json, 
       // If responce type is {'status':success,'message': 'text','data':[]} or indner  content containing all response in 'data' key the make it true,initialy false
       innderData : false,
 
@@ -85,7 +85,7 @@ Add `oneRequest.initLoading` under `runapp()` inside Materialapp
 ### loading Config can be modified 
 
 ```dart
-  // Custom loadibg Configuration
+  // Custom loading Configuration
   oneRequest.loadingconfig(
     // BackgroundColor of loading
     backgroundColor: Colors.amber,   
@@ -115,7 +115,7 @@ Add `oneRequest.initLoading` under `runapp()` inside Materialapp
   );
 ```
 
-### loading Widget Only can be modified 
+### loading Widget Only can be modified  to use on multi purpose outside one_request
 
 ```dart
 // only loading indictor Customize
@@ -125,4 +125,11 @@ Add `oneRequest.initLoading` under `runapp()` inside Materialapp
     // Text   
     status: 'loading',                                  
   );
+```
+
+### dismiss loading
+
+```dart
+// dissmiss loading
+oneRequest.dismissLoading;
 ```

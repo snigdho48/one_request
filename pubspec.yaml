@@ -1,8 +1,9 @@
 name: one_request
 description: Handle http request, error and loading at a time. Very simple to use and easy to understand.
-version: 0.0.4
+version: 0.0.5
 homepage: https://github.com/snigdho48/one_request
 repository: https://github.com/snigdho48/one_request/
+issue_tracker: https://github.com/snigdho48/one_request/issues
 
 environment:
   sdk: ">=2.17.0 <4.0.0"

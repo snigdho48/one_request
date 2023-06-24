@@ -17,6 +17,10 @@ class LoadingStuff {
     }
   }
 
+  static loadingDismiss() {
+    return EasyLoading.dismiss();
+  }
+
   static void configLoad(
       {Widget? indicator,
       Widget? success,
@@ -36,7 +40,7 @@ class LoadingStuff {
       ..progressColor = progressColor ?? Colors.white
       ..backgroundColor = backgroundColor ?? Colors.black
       ..indicatorColor = indicatorColor ?? Colors.white
-      ..textColor = textColor ?? Colors.pink
+      ..textColor = textColor ?? Colors.white
       ..maskColor = Colors.blue.withOpacity(0.5)
       ..userInteractions = false
       ..dismissOnTap = false

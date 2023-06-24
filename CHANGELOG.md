@@ -1,3 +1,7 @@
+## 0.0.5
+
+### - miror bug fix
+
 ## 0.0.4
 
 ### - Overlay loading added
