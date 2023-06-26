@@ -157,7 +157,7 @@ class oneRequest {
     EasyLoading.dismiss();
 
     if (response.statusCode == 200) {
-      final Map<String, dynamic> responseJson = await response.data;
+      final responseJson = await response.data;
       if (innderData) {
         try {
           if (responseJson['data'] != null && responseJson['data'] != '') {
