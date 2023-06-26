@@ -72,7 +72,7 @@ Add `oneRequest.initLoading` under `runapp()` inside Materialapp
       //  ContentType, Default is 'application/json' (Optional)                       
       contentType:  ContentType.json,
       // ['stream','json','plain','bytes'], Default is 'json' (Optional)    
-      responseType: ResponseType.json, 
+      responsetype: ResponseType.json, 
       // If responce type is {'status':success,'message': 'text','data':[]} or indner  content containing all response in 'data' key the make it true,initialy false
       innderData : false,
 
