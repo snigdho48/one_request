@@ -1,6 +1,10 @@
+## 0.0.6
+
+### - mirror bug fix
+
 ## 0.0.5
 
-### - miror bug fix
+### - mirror bug fix
 
 ## 0.0.4
 
