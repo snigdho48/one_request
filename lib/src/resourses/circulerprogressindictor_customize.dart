@@ -5,7 +5,7 @@ import 'dart:math' as math show sin, pi;
 // ignore: camel_case_types
 // start enmu [SpinKitWaveType]
 enum SpinKitWaveType { start, end, center }
-// 
+//
 
 /// A custom [Tween] that adds a delay to the animation.
 class DelayTween extends Tween<double> {

@@ -1,13 +1,14 @@
 ## 1.0.0
 
 ### - Version update
+
 ## 0.0.6
 
 ### - mirror bug fix
 
 ## 0.0.5
 
-### - mirror bug fix
+### - mirror bug fixing
 
 ## 0.0.4
 
@@ -20,7 +21,6 @@
 ### - Documentation added
 
 ### - File input added
-
 
 ## 0.0.2
 
