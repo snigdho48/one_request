@@ -1,3 +1,6 @@
+## 1.0.0
+
+### - Version update
 ## 0.0.6
 
 ### - mirror bug fix

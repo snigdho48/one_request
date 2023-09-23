@@ -1,3 +1,10 @@
+/// This file contains enums and extensions to specify the type of request, response, and content expected from the server.
+/// [RequestType] is used to specify the type of request expected from the server.
+/// [ParseRequestType] is an extension on [RequestType] that provides a string value for each request type.
+/// [ResponseType] is used to specify the type of response expected from the server.
+/// [ParseResponseType] is an extension on [ResponseType] that provides a [dio.ResponseType] value for each response type.
+/// [ContentType] is used to specify the type of content expected from the server.
+/// [ParseContentType] is an extension on [ContentType] that provides a string value for each content type.
 import 'package:dio/dio.dart' as dio;
 
 // [RequestType] is used to specify the type of request expected from the server.

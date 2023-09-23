@@ -13,7 +13,7 @@ dependencies:
   flutter:
     sdk: flutter
   dio: ^5.2.1
-  either_dart: ^0.4.0
+  either_dart: ^1.0.0
   flutter_easyloading: ^3.0.5
 
 dev_dependencies:

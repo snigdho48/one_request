@@ -1,3 +1,28 @@
+/// This file contains the definition of custom exceptions and exception handlers.
+///
+/// The [AppException] class is the base class for all custom exceptions.
+/// It contains [message], [prefix], and [url] properties.
+///
+/// The following classes extend [AppException]:
+/// - [BadRequestException]
+/// - [FetchDataException]
+/// - [ApiNotRespondingException]
+/// - [UnAuthorizedException]
+/// - [NotFoundException]
+///
+/// The [CustomExceptionHandlers] class contains a method [getExceptionString()]
+/// that returns a string message based on the type of exception passed to it.
+/// It handles the following types of exceptions:
+/// - [SocketException]
+/// - [HttpException]
+/// - [FormatException]
+/// - [TimeoutException]
+/// - [BadRequestException]
+/// - [UnAuthorizedException]
+/// - [NotFoundException]
+/// - [FetchDataException]
+///
+/// If the exception type is not recognized, it returns 'Unknown error occured.'.
 import 'dart:async';
 import 'dart:io';
 

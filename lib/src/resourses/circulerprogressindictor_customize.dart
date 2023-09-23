@@ -7,6 +7,7 @@ import 'dart:math' as math show sin, pi;
 enum SpinKitWaveType { start, end, center }
 // 
 
+/// A custom [Tween] that adds a delay to the animation.
 class DelayTween extends Tween<double> {
   DelayTween({double? begin, double? end, required this.delay})
       : super(begin: begin, end: end);
@@ -21,6 +22,7 @@ class DelayTween extends Tween<double> {
   double evaluate(Animation<double> animation) => lerp(animation.value);
 }
 
+/// A customizable wave-shaped progress indicator.
 class SpinKitWave extends StatefulWidget {
   const SpinKitWave({
     Key? key,
@@ -38,12 +40,25 @@ class SpinKitWave extends StatefulWidget {
         assert(itemCount >= 2, 'itemCount Cant be less then 2 '),
         super(key: key);
 
+  /// The color of the progress indicator.
   final Color? color;
+
+  /// The number of wave bars in the progress indicator.
   final int itemCount;
+
+  /// The size of the progress indicator.
   final double size;
+
+  /// The type of wave animation to use.
   final SpinKitWaveType type;
+
+  /// A builder for the wave bars in the progress indicator.
   final IndexedWidgetBuilder? itemBuilder;
+
+  /// The duration of the animation.
   final Duration duration;
+
+  /// An optional [AnimationController] to use for the animation.
   final AnimationController? controller;
 
   @override
@@ -94,6 +109,7 @@ class _SpinKitWaveState extends State<SpinKitWave>
     );
   }
 
+  /// Returns a list of delays for the wave animation based on the [itemCount] and [type].
   List<double> getAnimationDelay(int itemCount) {
     switch (widget.type) {
       case SpinKitWaveType.start:
@@ -106,6 +122,7 @@ class _SpinKitWaveState extends State<SpinKitWave>
     }
   }
 
+  /// Returns a list of delays for the wave animation starting from the left.
   List<double> _startAnimationDelay(int count) {
     return <double>[
       ...List<double>.generate(
@@ -118,6 +135,7 @@ class _SpinKitWaveState extends State<SpinKitWave>
     ];
   }
 
+  /// Returns a list of delays for the wave animation starting from the right.
   List<double> _endAnimationDelay(int count) {
     return <double>[
       ...List<double>.generate(
@@ -130,6 +148,7 @@ class _SpinKitWaveState extends State<SpinKitWave>
     ];
   }
 
+  /// Returns a list of delays for the wave animation starting from the center.
   List<double> _centerAnimationDelay(int count) {
     return <double>[
       ...List<double>.generate(
@@ -140,6 +159,7 @@ class _SpinKitWaveState extends State<SpinKitWave>
     ];
   }
 
+  /// Builds a wave bar using the [itemBuilder] or a default [DecoratedBox].
   Widget _itemBuilder(int index) => widget.itemBuilder != null
       ? widget.itemBuilder!(context, index)
       : DecoratedBox(
@@ -148,6 +168,7 @@ class _SpinKitWaveState extends State<SpinKitWave>
         ));
 }
 
+/// An animated widget that scales its child along the Y-axis.
 class ScaleYWidget extends AnimatedWidget {
   const ScaleYWidget({
     Key? key,
@@ -169,4 +190,3 @@ class ScaleYWidget extends AnimatedWidget {
         child: child);
   }
 }
-

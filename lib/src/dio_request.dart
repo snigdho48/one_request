@@ -1,3 +1,12 @@
+/// This file contains the implementation of the `oneRequest` class, which provides a simple interface for making HTTP requests using the `dio` package.
+///
+/// The `oneRequest` class provides methods for sending HTTP requests with various options such as request body, query parameters, headers, and more. It also provides methods for configuring and displaying loading indicators using the `flutter_easyloading` package.
+///
+/// The class also includes helper methods for creating `dio.MultipartFile` objects from bytes, strings, and files.
+///
+/// The `send` method is the main method for sending HTTP requests, and it returns an `Either` object that contains either the response data or a `CustomExceptionHandlers` object in case of an error.
+///
+/// The `_httpequest` method is the private method that actually sends the HTTP request using the `dio` package. It handles errors and timeouts and returns a `dio.Response` object.
 import 'dart:core';
 import 'dart:io';
 
