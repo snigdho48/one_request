@@ -4,7 +4,6 @@
 /// - `types.dart`: contains the implementation of various types used in the library.
 /// - `utils.dart`: contains utility functions used in the library.
 /// To use this library, simply call `oneRequest` and you're good to go.
-library one_request;
 // ignore_for_file: camel_case_types
 
 library one_request;
