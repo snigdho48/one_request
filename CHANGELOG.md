@@ -1,3 +1,7 @@
+## 1.0.1
+
+### - Doc generated
+
 ## 1.0.0
 
 ### - Version update

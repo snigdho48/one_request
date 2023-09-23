@@ -18,7 +18,15 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'circulerprogressindictor_customize.dart';
 
+/// A utility class for displaying loading indicators using EasyLoading.
 class LoadingStuff {
+  /// Displays a loading indicator with an optional status message, color, and custom widget.
+  ///
+  /// If [indicator] is provided, it will be used as the loading indicator. Otherwise, the default
+  /// loading indicator will be used.
+  ///
+  /// If [status] is provided, it will be displayed as the status message for the loading indicator.
+  /// Otherwise, the default status message "loading" will be used.
   static loading({String? status, Color? color, Widget? indicator}) {
     if (indicator != null) {
       return EasyLoading.show(
@@ -32,10 +40,29 @@ class LoadingStuff {
     }
   }
 
+  /// Dismisses the loading indicator.
   static loadingDismiss() {
     return EasyLoading.dismiss();
   }
 
+  /// A utility class that provides a method to configure the EasyLoading plugin.
+  /// Configures the EasyLoading plugin with the given parameters.
+  ///
+  /// [indicator] is the widget to be displayed as the loading indicator.
+  ///
+  /// [success] is the widget to be displayed when the loading is successful.
+  ///
+  /// [error] is the widget to be displayed when the loading fails.
+  ///
+  /// [info] is the widget to be displayed when the loading is in progress.
+  ///
+  /// [progressColor] is the color of the progress indicator.
+  ///
+  /// [backgroundColor] is the background color of the loading widget.
+  ///
+  /// [indicatorColor] is the color of the loading indicator.
+  ///
+  /// [textColor] is the color of the text displayed with the loading widget.
   static void configLoad(
       {Widget? indicator,
       Widget? success,
@@ -84,5 +111,6 @@ class LoadingStuff {
           );
   }
 
+  /// Initializes the EasyLoading plugin.
   static get initLoading => EasyLoading.init();
 }

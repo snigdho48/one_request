@@ -20,20 +20,33 @@ enum RequestType {
 }
 
 // [RequestTypes] is used to specify the type of request expected from the server.
+/// Extension method to parse [RequestType] to a [String] value.
+///
+/// This extension method is used to specify the type of request expected from the server.
+///
+/// Example usage:
+/// ```dart
+/// RequestType requestType = RequestType.GET;
+/// String requestTypeValue = requestType.value; // returns 'GET'
+/// ```
 extension ParseRequestType on RequestType {
-  //[RequestType.value] is used to specify the type of request expected from the server.
+  /// Returns the [String] value of the [RequestType].
+  ///
+  /// The [RequestType] can be one of the following:
+  /// - [RequestType.GET]
+  /// - [RequestType.POST]
+  /// - [RequestType.PUT]
+  /// - [RequestType.DELETE]
+  ///
+  /// If the [RequestType] is not one of the above, it returns 'GET' by default.
   String get value {
     switch (this) {
-      // [RequestType.GET] is used to specify the type of request expected from the server.
       case RequestType.GET:
         return 'GET';
-      // [RequestType.POST] is used to specify the type of request expected from the server.
       case RequestType.POST:
         return 'POST';
-      // [RequestType.PUT] is used to specify the type of request expected from the server.
       case RequestType.PUT:
         return 'PUT';
-      // [RequestType.DELETE] is used to specify the type of request expected from the server.
       case RequestType.DELETE:
         return 'DELETE';
       default:
@@ -55,20 +68,29 @@ enum ResponseType {
 }
 
 // [ResponseTypes] is used to specify the type of response expected from the server.
+/// An extension on [ResponseType] enum to convert it to [dio.ResponseType].
 extension ParseResponseType on ResponseType {
-  //[ResponseType.value] is used to specify the type of response expected from the server.
+  /// Returns the [dio.ResponseType] equivalent of the [ResponseType] enum.
+  ///
+  /// [ResponseType.value] is used to specify the type of response expected from the server.
+  ///
+  /// [ResponseType.json] is used to specify the type of response expected from the server.
+  ///
+  /// [ResponseType.bytes] is used to specify the type of response expected from the server.
+  ///
+  /// [ResponseType.stream] is used to specify the type of response expected from the server.
+  ///
+  /// [ResponseType.plain] is used to specify the type of response expected from the server.
+  ///
+  /// If the [ResponseType] is not one of the above, it returns [dio.ResponseType.json] as default.
   dio.ResponseType get value {
     switch (this) {
-      // [ResponseType.json] is used to specify the type of response expected from the server.
       case ResponseType.json:
         return dio.ResponseType.json;
-      //[ResponseType.bytes] is used to specify the type of response expected from the server.
       case ResponseType.bytes:
         return dio.ResponseType.bytes;
-      //[ResponseType.stream] is used to specify the type of response expected from the server.
       case ResponseType.stream:
         return dio.ResponseType.stream;
-      //[ResponseType.plain] is used to specify the type of response expected from the server.
       case ResponseType.plain:
         return dio.ResponseType.plain;
       default:
@@ -90,20 +112,24 @@ enum ContentType {
 }
 
 // [ContentTypes] is used to specify the type of content expected from the server.
+/// An extension on [ContentType] that provides a [value] getter to return the corresponding MIME type string for the content type.
 extension ParseContentType on ContentType {
-  // ignore: avoid_returning_null
+  /// Returns the corresponding MIME type string for the content type.
+  ///
+  /// - [ContentType.json] is mapped to 'application/json'.
+  /// - [ContentType.stream] is mapped to 'application/octet-stream'.
+  /// - [ContentType.bytes] is mapped to 'application/octet-stream'.
+  /// - [ContentType.text] is mapped to 'text/plain'.
+  ///
+  /// If the content type is not one of the above, it defaults to 'application/json'.
   String get value {
     switch (this) {
-      // [ContentType.json] is used to specify the type of content expected from the server.
       case ContentType.json:
         return 'application/json';
-      // [ContentType.stream] is used to specify the type of content expected from the server.
       case ContentType.stream:
         return 'application/octet-stream';
-      //[ContentType.bytes] is used to specify the type of content expected from the server.
       case ContentType.bytes:
         return 'application/octet-stream';
-      //[ContentType.text] is used to specify the type of content expected from the server.
       case ContentType.text:
         return 'text/plain';
       default:
