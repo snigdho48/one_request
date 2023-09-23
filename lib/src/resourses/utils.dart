@@ -12,9 +12,7 @@
 /// 
 /// This file also imports the following files:
 ///   * circulerprogressindictor_customize.dart
-class LoadingStuff {
-  // class implementation
-}
+
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
