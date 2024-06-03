@@ -10,6 +10,7 @@ For general information about developing packages, see the Dart guide for
 and the Flutter guide for
 [developing packages and plugins](https://flutter.dev/developing-packages).
 -->
+
 # one_request
 
 ## A simple all in one web request package.
@@ -17,7 +18,6 @@ and the Flutter guide for
 ### Features
 
 #### Package used **dio** ,**flutter_easyloading**, **either_dart**. Thanks All of them.
-
 
 ## Usage
 
@@ -48,31 +48,31 @@ Add `oneRequest.initLoading` under `runapp()` inside Materialapp
   }
 ```
 
- Call api example:
+Call api example:
 
 ```dart
 // Create an instance
   final request = oneRequest();
-  // store the respone 
+  // store the respone
   var value = await request.send(
       // Url requared
       url: 'https://google.com',
-      // Method ('GET','POST','PUT','DELETE',)           
-      method: RequestType.GET, 
-      // Header data Map<String,dynamic> (Optional)                      
-      header: {'test': 'test'},   
-      // Body data Map<String,dynamic> (Optional)          
-      body: {'test': 'test'},    
-      // Boolean value , true is FormData, Default is false (Optional)           
-      formData: false, 
+      // Method ('GET','POST','PUT','DELETE',)
+      method: RequestType.GET,
+      // Header data Map<String,dynamic> (Optional)
+      header: {'test': 'test'},
+      // Body data Map<String,dynamic> (Optional)
+      body: {'test': 'test'},
+      // Boolean value , true is FormData, Default is false (Optional)
+      formData: false,
       //MaxRedirect count, Default is 1 (Optional)
-      maxRedirects: 1, 
-      // Request Timeout, Default is 60 Second (Optional)                     
-      timeout: 60,  
-      //  ContentType, Default is 'application/json' (Optional)                       
+      maxRedirects: 1,
+      // Request Timeout, Default is 60 Second (Optional)
+      timeout: 60,
+      //  ContentType, Default is 'application/json' (Optional)
       contentType:  ContentType.json,
-      // ['stream','json','plain','bytes'], Default is 'json' (Optional)    
-      responsetype: ResponseType.json, 
+      // ['stream','json','plain','bytes'], Default is 'json' (Optional)
+      responsetype: ResponseType.json,
       // If responce type is {'status':success,'message': 'text','data':[]} or indner  content containing all response in 'data' key the make it true,initialy false
       innderData : false,
 
@@ -81,49 +81,48 @@ Add `oneRequest.initLoading` under `runapp()` inside Materialapp
 
 ## Additional information
 
-
-### loading Config can be modified 
+### loading Config can be modified
 
 ```dart
   // Custom loading Configuration
   oneRequest.loadingconfig(
     // BackgroundColor of loading
-    backgroundColor: Colors.amber,   
-    // Loading indicator Widget                   
-    indicator: const CircularProgressIndicator(), 
-    //  Loading Indicator Colour      
-    indicatorColor: Colors.red,  
-    // Progress Indicator Colour                       
-    progressColor: Colors.red,  
-    // Text Color                        
-    textColor: Colors.red,  
-    // Success Widget                            
-    success : const Icon(                              
+    backgroundColor: Colors.amber,
+    // Loading indicator Widget
+    indicator: const CircularProgressIndicator(),
+    //  Loading Indicator Colour
+    indicatorColor: Colors.red,
+    // Progress Indicator Colour
+    progressColor: Colors.red,
+    // Text Color
+    textColor: Colors.red,
+    // Success Widget
+    success : const Icon(
         Icons.check,
         color: Colors.green,
       ),
       // Error Widget
-      error : const Icon(                              
+      error : const Icon(
         Icons.error,
         color: Colors.red,
       ),
       // Info Widget
-      info : const Icon(                               
+      info : const Icon(
         Icons.info,
         color: Colors.blue,
       ),
   );
 ```
 
-### loading Widget Only can be modified  to use on multi purpose outside one_request
+### loading Widget Only can be modified to use on multi purpose outside one_request
 
 ```dart
 // only loading indictor Customize
   oneRequest.loadingconfig(
     // Widget
-    indicator: const CircularProgressIndicator(),    
-    // Text   
-    status: 'loading',                                  
+    indicator: const CircularProgressIndicator(),
+    // Text
+    status: 'loading',
   );
 ```
 

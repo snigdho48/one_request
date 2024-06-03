@@ -1,6 +1,6 @@
 name: one_request
-description: Handle http request, error and loading at a time. Very simple to use and easy to understand.
-version: 1.0.1
+description: Updated to latest.
+version: 1.0.2
 homepage: https://github.com/snigdho48/one_request
 repository: https://github.com/snigdho48/one_request/
 issue_tracker: https://github.com/snigdho48/one_request/issues
@@ -19,4 +19,4 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^4.0.0
