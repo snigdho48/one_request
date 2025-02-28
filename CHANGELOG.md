@@ -1,5 +1,11 @@
 ## 1.0.3
 
+### - Fix ErrorMassage Handeling
+### - added Option Loading and Result Status Overlay show or hide feature
+### - Updated Dependencies
+
+## 1.0.3
+
 ### - Updated Dependencies
 
 ## 1.0.2
