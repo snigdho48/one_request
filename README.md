@@ -75,7 +75,10 @@ Call api example:
       responsetype: ResponseType.json,
       // If responce type is {'status':success,'message': 'text','data':[]} or indner  content containing all response in 'data' key the make it true,initialy false
       innderData : false,
-
+      // if Want to show loading indicator, Default is true (Optional)
+      loader: true,
+      // if Want to show error or success Overlay, Default is true (Optional)
+      resultOverlay: true,
     );
 ```
 

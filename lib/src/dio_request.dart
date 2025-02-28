@@ -1,12 +1,3 @@
-/// This file contains the implementation of the `oneRequest` class, which provides a simple interface for making HTTP requests using the `dio` package.
-///
-/// The `oneRequest` class provides methods for sending HTTP requests with various options such as request body, query parameters, headers, and more. It also provides methods for configuring and displaying loading indicators using the `flutter_easyloading` package.
-///
-/// The class also includes helper methods for creating `dio.MultipartFile` objects from bytes, strings, and files.
-///
-/// The `send` method is the main method for sending HTTP requests, and it returns an `Either` object that contains either the response data or a `CustomExceptionHandlers` object in case of an error.
-///
-/// The `_httpequest` method is the private method that actually sends the HTTP request using the `dio` package. It handles errors and timeouts and returns a `dio.Response` object.
 import 'dart:core';
 import 'dart:io';
 
@@ -160,6 +151,9 @@ class oneRequest {
     ContentType contentType = ContentType.json,
     int timeout = 60,
     bool innderData = false,
+    bool loader= true,
+        bool resultOverlay = true,
+
   }) =>
       _httpequest(
         body: body,
@@ -173,6 +167,8 @@ class oneRequest {
         responsetype: responsetype,
         contentType: contentType,
         innderData: innderData,
+        loader: loader,
+        resultOverlay: resultOverlay,
       );
   // main request function
   /// Sends an HTTP request using Dio package.
@@ -215,9 +211,13 @@ class oneRequest {
     int timeout = 60,
     dio.Options? options,
     bool innderData = false,
+    bool loader = true,
+    bool resultOverlay = true,
   }) async {
     final r = dio.Dio();
-    LoadingStuff.loading();
+    if(loader){
+          LoadingStuff.loading();
+    }
     var headers = header ??
         {
           'Content-Type': 'application/json',
@@ -261,7 +261,9 @@ class oneRequest {
       },
     );
 
-    EasyLoading.dismiss();
+  if(loader){
+      EasyLoading.dismiss();
+  }
 
     if (response.statusCode == 200) {
       final responseJson = await response.data;
@@ -270,19 +272,27 @@ class oneRequest {
           if (responseJson['data'] != null && responseJson['data'] != '') {
             return Left(responseJson['data']);
           } else {
-            EasyLoading.showError(responseJson['message'].toString());
+            if(resultOverlay){
+              EasyLoading.showSuccess(responseJson['message'].toString());
+            }
             return Right(responseJson['message']);
           }
         } catch (e) {
-          EasyLoading.showError(e.toString());
-          return Right(CustomExceptionHandlers(error: e.toString()));
+          if(resultOverlay){
+            EasyLoading.showError(CustomExceptionHandlers(error: e).getExceptionString());
+          }
+          return Right(CustomExceptionHandlers(error: e).getExceptionString());
         }
       }
-      EasyLoading.showSuccess(response.statusMessage.toString());
+      if(resultOverlay){
+        EasyLoading.showSuccess(response.statusMessage.toString());
+      }
       return Left(responseJson);
     } else {
-      EasyLoading.showError(response.statusMessage.toString());
-      return Right(CustomExceptionHandlers(error: response.statusMessage));
+      if(resultOverlay){
+        EasyLoading.showError(response.statusMessage.toString());
+      }
+      return Right(CustomExceptionHandlers(error: response.statusMessage).getExceptionString());
     }
   }
 }
