@@ -279,7 +279,7 @@ class oneRequest {
         } catch (e) {
           if (resultOverlay) {
             EasyLoading.showError(
-                CustomExceptionHandlers(error: e).getExceptionString());
+                e.toString().contains('data') ? e.toString() : e.toString());
           }
           return Right(CustomExceptionHandlers(error: e).getExceptionString());
         }
