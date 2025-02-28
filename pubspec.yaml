@@ -3,8 +3,7 @@ description: A Flutter package to make HTTP requests with advanced error handlin
 version: 1.0.4
 homepage: https://github.com/snigdho48/one_request
 repository: https://github.com/snigdho48/one_request/
-issue_tracker: https://github.com/snigdho48/one_request/issues
-
+issue_tracker: https://github.com/snigdho48/one_request/issues/
 environment:
   sdk: ">=2.17.0 <4.0.0"
   flutter: ">=1.17.0"
