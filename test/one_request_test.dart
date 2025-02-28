@@ -1,12 +1,4 @@
-/// This file contains the implementation of a Flutter app that sends a GET request to 'https://catfact.ninja/fact' using the 'one_request' package.
-/// The app also demonstrates how to send files as part of the request body.
-/// The response from the server is displayed on the app's home page.
-/// The 'one_request' package is used to create an instance of the request and send it.
-/// The app also loads the 'one_request' configuration and initializes the loading builder.
-/// The app has three classes: MyApp, MyHomePage, and _MyHomePageState.
-/// MyApp is the main app widget that initializes the 'one_request' configuration and sets up the app's theme.
-/// MyHomePage is a stateful widget that displays the response from the server.
-/// _MyHomePageState is the state object for MyHomePage that sends the GET request and updates the UI with the response.
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';

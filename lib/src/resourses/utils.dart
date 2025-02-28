@@ -1,17 +1,3 @@
-/// This file contains the [LoadingStuff] class which provides methods for showing and dismissing loading indicators using the [EasyLoading] package.
-/// It also provides a method for configuring the loading indicator with custom widgets and colors.
-///
-/// The [loading] method shows the loading indicator with an optional status message, color and custom indicator widget.
-/// The [loadingDismiss] method dismisses the loading indicator.
-/// The [configLoad] method configures the loading indicator with custom widgets and colors.
-/// The [initLoading] getter initializes the [EasyLoading] package.
-///
-/// This file imports the following packages:
-///   * flutter/material.dart
-///   * flutter_easyloading/flutter_easyloading.dart
-///
-/// This file also imports the following files:
-///   * circulerprogressindictor_customize.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
