@@ -151,9 +151,8 @@ class oneRequest {
     ContentType contentType = ContentType.json,
     int timeout = 60,
     bool innderData = false,
-    bool loader= true,
-        bool resultOverlay = true,
-
+    bool loader = true,
+    bool resultOverlay = true,
   }) =>
       _httpequest(
         body: body,
@@ -215,8 +214,8 @@ class oneRequest {
     bool resultOverlay = true,
   }) async {
     final r = dio.Dio();
-    if(loader){
-          LoadingStuff.loading();
+    if (loader) {
+      LoadingStuff.loading();
     }
     var headers = header ??
         {
@@ -261,9 +260,9 @@ class oneRequest {
       },
     );
 
-  if(loader){
+    if (loader) {
       EasyLoading.dismiss();
-  }
+    }
 
     if (response.statusCode == 200) {
       final responseJson = await response.data;
@@ -272,27 +271,29 @@ class oneRequest {
           if (responseJson['data'] != null && responseJson['data'] != '') {
             return Left(responseJson['data']);
           } else {
-            if(resultOverlay){
+            if (resultOverlay) {
               EasyLoading.showSuccess(responseJson['message'].toString());
             }
             return Right(responseJson['message']);
           }
         } catch (e) {
-          if(resultOverlay){
-            EasyLoading.showError(CustomExceptionHandlers(error: e).getExceptionString());
+          if (resultOverlay) {
+            EasyLoading.showError(
+                CustomExceptionHandlers(error: e).getExceptionString());
           }
           return Right(CustomExceptionHandlers(error: e).getExceptionString());
         }
       }
-      if(resultOverlay){
+      if (resultOverlay) {
         EasyLoading.showSuccess(response.statusMessage.toString());
       }
       return Left(responseJson);
     } else {
-      if(resultOverlay){
+      if (resultOverlay) {
         EasyLoading.showError(response.statusMessage.toString());
       }
-      return Right(CustomExceptionHandlers(error: response.statusMessage).getExceptionString());
+      return Right(
+          CustomExceptionHandlers(error: response).getExceptionString());
     }
   }
 }

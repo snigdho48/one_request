@@ -1,4 +1,3 @@
-
 import 'package:dio/dio.dart' as dio;
 
 // [RequestType] is used to specify the type of request expected from the server.

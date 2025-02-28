@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
@@ -69,7 +68,7 @@ class LoadingStuff {
       ..backgroundColor = backgroundColor ?? Colors.black
       ..indicatorColor = indicatorColor ?? Colors.white
       ..textColor = textColor ?? Colors.white
-      ..maskColor = Colors.blue.withOpacity(0.5)
+      ..maskColor = Colors.blue.shade500
       ..userInteractions = false
       ..dismissOnTap = false
       ..indicatorWidget = indicator ??
