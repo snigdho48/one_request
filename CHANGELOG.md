@@ -1,4 +1,7 @@
 
+## 1.0.7
+
+### - Updated dependencies
 ## 1.0.6
 
 ### - Updated dependencies
