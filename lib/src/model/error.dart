@@ -1,11 +1,5 @@
-/// This file contains the definition of custom exceptions and exception handlers.
-///
-/// The [AppException] class is the base class for all custom exceptions.
-/// It contains [message], [prefix], and [url] properties.
-///
 
-///
-/// If the exception type is not recognized, it returns 'Unknown error occured.'.
+
 import 'dart:async';
 import 'dart:io';
 
