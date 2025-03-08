@@ -292,8 +292,9 @@ class oneRequest {
       if (resultOverlay) {
         EasyLoading.showError(response.statusMessage.toString());
       }
-      return Right(
-          response.statusMessage.toString().contains('data') ? response.data : response.statusMessage);
+      return Right(response.statusMessage.toString().contains('data')
+          ? response.data
+          : response.statusMessage);
     }
   }
 }
