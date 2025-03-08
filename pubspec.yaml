@@ -1,6 +1,6 @@
 name: one_request
 description: A Flutter package to make HTTP requests with advanced error handling, including Dio and EasyLoading.
-version: 1.0.8
+version: 1.0.9
 homepage: https://github.com/snigdho48/one_request
 repository: https://github.com/snigdho48/one_request/
 issue_tracker: https://github.com/snigdho48/one_request/issues/

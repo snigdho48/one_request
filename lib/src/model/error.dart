@@ -85,7 +85,7 @@ class CustomExceptionHandlers {
     } else if (error is FetchDataException) {
       return error.message.toString();
     } else {
-      return 'Unknown error occured.';
+      return error.toString();
     }
   }
 }
