@@ -39,7 +39,7 @@
     },
     {
       "name": "dio_web_adapter",
-      "rootUri": "file:///Users/snigdho/.pub-cache/hosted/pub.dev/dio_web_adapter-2.1.0",
+      "rootUri": "file:///Users/snigdho/.pub-cache/hosted/pub.dev/dio_web_adapter-2.1.1",
       "packageUri": "lib/",
       "languageVersion": "3.3"
     },
@@ -201,7 +201,7 @@
     },
     {
       "name": "web",
-      "rootUri": "file:///Users/snigdho/.pub-cache/hosted/pub.dev/web-1.1.0",
+      "rootUri": "file:///Users/snigdho/.pub-cache/hosted/pub.dev/web-1.1.1",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -212,7 +212,7 @@
       "languageVersion": "2.17"
     }
   ],
-  "generated": "2025-03-08T16:12:37.307841Z",
+  "generated": "2025-03-08T16:47:14.597150Z",
   "generator": "pub",
   "generatorVersion": "3.6.2",
   "flutterRoot": "file:///usr/local/Caskroom/flutter/3.22.1/flutter",

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'dart:html';
 
 /// An exception class for handling application-specific errors.
 ///
@@ -85,7 +85,7 @@ class CustomExceptionHandlers {
     } else if (error is FetchDataException) {
       return error.message.toString();
     } else {
-      return error.toString();
+      return 'Unknown error occured.';
     }
   }
 }

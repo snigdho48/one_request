@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'dart:html';
 
 import 'package:flutter/material.dart';
 import 'package:one_request/one_request.dart';

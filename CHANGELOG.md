@@ -1,3 +1,8 @@
+## 2.0.0
+
+### - Updated dependencies
+
+### - Added Web support
 
 ## 1.0.9
 

@@ -1,5 +1,5 @@
 import 'dart:core';
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'dart:html';
 
 import 'package:dio/dio.dart' as dio;
 import 'package:either_dart/either.dart';
@@ -139,7 +139,7 @@ class oneRequest {
   /// number of seconds to wait for a response before timing out. The [innderData]
   /// parameter specifies whether to include the response data in the returned
   /// [Either] object.
-  Future<Either<dynamic, CustomExceptionHandlers>> send({
+  Future<Either<dynamic, String>> send({
     Map<String, dynamic>? body,
     Map<String, dynamic>? queryParameters,
     bool formData = false,
@@ -197,7 +197,7 @@ class oneRequest {
   /// [innderData] is a boolean value indicating whether to return the inner data of the response or not.
   ///
   /// Returns a [Future] of [Either] of dynamic and [CustomExceptionHandlers].
-  Future<Either<dynamic, CustomExceptionHandlers>> _httpequest({
+  Future<Either<dynamic, String>> _httpequest({
     Map<String, dynamic>? body,
     Map<String, dynamic>? queryParameters,
     bool formData = false,
@@ -293,7 +293,7 @@ class oneRequest {
         EasyLoading.showError(response.statusMessage.toString());
       }
       return Right(
-          CustomExceptionHandlers(error: response).getExceptionString());
+          response.statusMessage.toString().contains('data') ? response.data : response.statusMessage);
     }
   }
 }
