@@ -1,3 +1,7 @@
+## 2.0.2
+
+### - Show Error Message Specifically send by the server on Right
+
 ## 2.0.1
 
 ### - Score Updated
