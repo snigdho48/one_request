@@ -264,7 +264,11 @@ class oneRequest {
       EasyLoading.dismiss();
     }
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 ||
+        response.statusCode == 201 ||
+        response.statusCode == 204 ||
+        response.statusCode == 202 ||
+        response.statusCode == 203) {
       final responseJson = await response.data;
       if (innderData) {
         try {
@@ -274,7 +278,7 @@ class oneRequest {
             if (resultOverlay) {
               EasyLoading.showSuccess(responseJson['message'].toString());
             }
-            return Right(responseJson['message']);
+            return Right(responseJson);
           }
         } catch (e) {
           if (resultOverlay) {
@@ -292,9 +296,8 @@ class oneRequest {
       if (resultOverlay) {
         EasyLoading.showError(response.statusMessage.toString());
       }
-      return Right(response.statusMessage.toString().contains('data')
-          ? response.data
-          : response.statusMessage);
+      print('Error: ${response.data}');
+      return Right(response.statusMessage.toString());
     }
   }
 }
