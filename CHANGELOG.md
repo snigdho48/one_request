@@ -1,3 +1,7 @@
+## 2.0.4
+
+### - Add Patch For request
+
 ## 2.0.3
 
 ### - Update dependencies

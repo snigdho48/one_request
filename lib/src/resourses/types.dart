@@ -10,6 +10,8 @@ enum RequestType {
   PUT,
   // ignore: constant_identifier_names
   DELETE,
+  // ignore: constant_identifier_names
+  PATCH
 }
 
 // [RequestTypes] is used to specify the type of request expected from the server.
@@ -30,6 +32,8 @@ extension ParseRequestType on RequestType {
   /// - [RequestType.POST]
   /// - [RequestType.PUT]
   /// - [RequestType.DELETE]
+  /// - [RequestType.PATCH]
+
   ///
   /// If the [RequestType] is not one of the above, it returns 'GET' by default.
   String get value {
@@ -42,6 +46,8 @@ extension ParseRequestType on RequestType {
         return 'PUT';
       case RequestType.DELETE:
         return 'DELETE';
+      case RequestType.PATCH:
+        return 'PATCH';
       default:
         return 'GET';
     }
