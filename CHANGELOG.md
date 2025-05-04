@@ -1,3 +1,7 @@
+## 2.0.5
+
+### - Fix Error Message Handeling
+
 ## 2.0.4
 
 ### - Add Patch For request
