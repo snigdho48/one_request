@@ -295,11 +295,11 @@ class oneRequest {
     } else {
       if (resultOverlay) {
         
-        EasyLoading.showError(response.data['message'].toString() ??
+        EasyLoading.showError(response.data ??
             response.statusMessage.toString());
       }
       print('Error: ${response.data}');
-      return Right(response.data['message'].toString() ??
+      return Right(response.data ??
           response.statusMessage.toString());
     }
   }
