@@ -294,10 +294,13 @@ class oneRequest {
       return Left(responseJson);
     } else {
       if (resultOverlay) {
-        EasyLoading.showError(response.statusMessage.toString());
+        
+        EasyLoading.showError(response.data['message'].toString() ??
+            response.statusMessage.toString());
       }
       print('Error: ${response.data}');
-      return Right(response.statusMessage.toString());
+      return Right(response.data['message'].toString() ??
+          response.statusMessage.toString());
     }
   }
 }
