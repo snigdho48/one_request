@@ -217,87 +217,127 @@ class oneRequest {
     if (loader) {
       LoadingStuff.loading();
     }
-    var headers = header ??
-        {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
-    // main request
-    final response = await r
-        .request(
-          url,
-          data: formData ? dio.FormData.fromMap(body!) : body,
-          queryParameters: queryParameters,
-          options: options ??
-              dio.Options(
-                contentType: contentType.value,
-                responseType: responsetype.value,
-                followRedirects: maxRedirects != 1 ? true : false,
-                method: method.value,
-                headers: headers,
-                maxRedirects: maxRedirects,
-                validateStatus: (status) => true,
-              ),
-        )
-        // error on request
-        .onError((error, stackTrace) => dio.Response(
-            requestOptions: dio.RequestOptions(path: url),
-            statusCode: 00,
-            statusMessage: error.toString()))
-        // timeout on request
-        .timeout(
-      Duration(seconds: timeout),
-      onTimeout: () {
-        r.close();
-        return dio.Response(
-          data: {
-            'success': false,
-            'message': 'Request timeout',
-          },
-          statusCode: 408,
-          requestOptions: dio.RequestOptions(path: url),
-        );
-      },
-    );
+    var headers = header ?? {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
 
-    if (loader) {
-      EasyLoading.dismiss();
-    }
+    try {
+      final response = await r
+          .request(
+            url,
+            data: formData && body != null ? dio.FormData.fromMap(body) : body,
+            queryParameters: queryParameters,
+            options: options ??
+                dio.Options(
+                  contentType: contentType.value,
+                  responseType: responsetype.value,
+                  followRedirects: maxRedirects != 1 ? true : false,
+                  method: method.value,
+                  headers: headers,
+                  maxRedirects: maxRedirects,
+                  validateStatus: (status) => true,
+                ),
+          )
+          .timeout(
+        Duration(seconds: timeout),
+        onTimeout: () {
+          r.close();
+          throw ApiNotRespondingException('Request timeout', url);
+        },
+      );
 
-    if (response.statusCode == 200 ||
-        response.statusCode == 201 ||
-        response.statusCode == 204 ||
-        response.statusCode == 202 ||
-        response.statusCode == 203) {
-      final responseJson = await response.data;
-      if (innderData) {
-        try {
-          if (responseJson['data'] != null && responseJson['data'] != '') {
-            return Left(responseJson['data']);
-          } else {
-            if (resultOverlay) {
-              EasyLoading.showSuccess(responseJson['message'].toString());
+      if (loader) {
+        EasyLoading.dismiss();
+      }
+
+      // Success responses
+      if ([200, 201, 202, 203, 204].contains(response.statusCode)) {
+        final responseJson = response.data;
+        if (innderData) {
+          try {
+            if (responseJson is Map && responseJson['data'] != null && responseJson['data'] != '') {
+              return Left(responseJson['data']);
+            } else {
+              if (resultOverlay && responseJson is Map && responseJson['message'] != null) {
+                EasyLoading.showSuccess(responseJson['message'].toString());
+              }
+              return Right(responseJson);
             }
-            return Right(responseJson);
+          } catch (e) {
+            final msg = CustomExceptionHandlers(error: e).getExceptionString();
+            if (resultOverlay) {
+              EasyLoading.showError(msg);
+            }
+            return Right(msg);
           }
-        } catch (e) {
-          if (resultOverlay) {
-            EasyLoading.showError(
-                e.toString().contains('data') ? e.toString() : e.toString());
-          }
-          return Right(CustomExceptionHandlers(error: e).getExceptionString());
         }
+        if (resultOverlay) {
+          EasyLoading.showSuccess(response.statusMessage?.toString() ?? 'Success');
+        }
+        return Left(responseJson);
+      } else {
+        // Error responses
+        String errorMsg = _extractErrorMessage(response.data) ?? response.statusMessage?.toString() ?? 'Unknown error occurred.';
+        if (resultOverlay) {
+          EasyLoading.showError(errorMsg);
+        }
+        return Right(errorMsg);
+      }
+    } on dio.DioException catch (e) {
+      if (loader) EasyLoading.dismiss();
+      String msg;
+      if (e.type == dio.DioExceptionType.connectionTimeout ||
+          e.type == dio.DioExceptionType.sendTimeout ||
+          e.type == dio.DioExceptionType.receiveTimeout) {
+        msg = CustomExceptionHandlers(error: ApiNotRespondingException('Request timeout', url)).getExceptionString();
+      } else if (e.type == dio.DioExceptionType.badResponse) {
+        msg = _extractErrorMessage(e.response?.data) ?? CustomExceptionHandlers(error: BadRequestException(e.message ?? '', url)).getExceptionString();
+      } else if (e.type == dio.DioExceptionType.cancel) {
+        msg = 'Request was cancelled.';
+      } else {
+        msg = CustomExceptionHandlers(error: FetchDataException(e.message ?? '', url)).getExceptionString();
       }
       if (resultOverlay) {
-        EasyLoading.showSuccess(response.statusMessage.toString());
+        EasyLoading.showError(msg);
       }
-      return Left(responseJson);
-    } else {
+      return Right(msg);
+    } on SocketException catch (e) {
+      if (loader) EasyLoading.dismiss();
+      final msg = CustomExceptionHandlers(error: e).getExceptionString();
       if (resultOverlay) {
-        EasyLoading.showError(
-            response.data[0] ?? response.statusMessage.toString());
+        EasyLoading.showError(msg);
       }
-      return Right(response.data[0] ?? response.statusMessage.toString());
+      return Right(msg);
+    } on AppException catch (e) {
+      if (loader) EasyLoading.dismiss();
+      final msg = CustomExceptionHandlers(error: e).getExceptionString();
+      if (resultOverlay) {
+        EasyLoading.showError(msg);
+      }
+      return Right(msg);
+    } catch (e) {
+      if (loader) EasyLoading.dismiss();
+      final msg = CustomExceptionHandlers(error: e).getExceptionString();
+      if (resultOverlay) {
+        EasyLoading.showError(msg);
+      }
+      return Right(msg);
     }
+  }
+
+  // Helper to extract error message from various response formats
+  String? _extractErrorMessage(dynamic data) {
+    if (data == null) return null;
+    if (data is String) return data;
+    if (data is Map) {
+      if (data['message'] != null) return data['message'].toString();
+      if (data['error'] != null) return data['error'].toString();
+      if (data['errors'] != null) return data['errors'].toString();
+    }
+    if (data is List && data.isNotEmpty) {
+      return data.first.toString();
+    }
+    return null;
   }
 }

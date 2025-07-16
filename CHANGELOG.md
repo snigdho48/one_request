@@ -1,3 +1,8 @@
+## 2.0.6
+
+### - Updated dependencies
+### - Fix Error Message Handeling more specifically
+
 ## 2.0.5
 
 ### - Fix Error Message Handeling
