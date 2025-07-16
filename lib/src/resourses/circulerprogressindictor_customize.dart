@@ -18,8 +18,7 @@ enum SpinKitWaveType {
 /// A custom [Tween] that adds a delay to the animation.
 class DelayTween extends Tween<double> {
   /// Creates a [DelayTween] with the given [begin], [end], and [delay] values.
-  DelayTween({double? begin, double? end, required this.delay})
-      : super(begin: begin, end: end);
+  DelayTween({super.begin, super.end, required this.delay});
 
   /// The delay to be added to the animation.
   final double delay;
@@ -50,7 +49,7 @@ class DelayTween extends Tween<double> {
 /// ```
 class SpinKitWave extends StatefulWidget {
   const SpinKitWave({
-    Key? key,
+    super.key,
     this.color,
     this.type = SpinKitWaveType.start,
     this.size = 50.0,
@@ -62,8 +61,7 @@ class SpinKitWave extends StatefulWidget {
             !(itemBuilder is IndexedWidgetBuilder && color is Color) &&
                 !(itemBuilder == null && color == null),
             'You should specify either a itemBuilder or a color'),
-        assert(itemCount >= 2, 'itemCount Cant be less then 2 '),
-        super(key: key);
+        assert(itemCount >= 2, 'itemCount Cant be less then 2 ');
 
   /// The color of the progress indicator.
   final Color? color;
@@ -254,11 +252,11 @@ class ScaleYWidget extends AnimatedWidget {
   final Widget child;
   final Alignment alignment;
   const ScaleYWidget({
-    Key? key,
+    super.key,
     required Animation<double> scaleY,
     required this.child,
     this.alignment = Alignment.center,
-  }) : super(key: key, listenable: scaleY);
+  }) : super(listenable: scaleY);
 
   /// Returns the animation scale as an [Animation<double>].
   Animation<double> get scale => listenable as Animation<double>;

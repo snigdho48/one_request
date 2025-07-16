@@ -442,12 +442,11 @@ class OneRequest {
         }
         return Right(msg);
       }
-      break;
     }
   }
 
   /// Batch request support: send multiple requests in parallel.
-  /// Each item in [requests] is a map of parameters for the send<T>() method.
+  /// Each item in [requests] is a map of parameters for the send method.
   /// Returns a list of results in the same order.
   /// Optionally, set [maxRetries] and [retryDelay] for exponential backoff on transient errors.
   static Future<List<Either<T, String>>> batch<T extends Object?>(
