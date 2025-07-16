@@ -6,7 +6,7 @@ import 'package:one_request/one_request.dart';
 // Main App
 void main() async {
   // Loading config Add  esential
-  oneRequest.loadingconfig();
+  OneRequest.loadingconfig();
   runApp(const MyApp());
 }
 
@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       // Loading config Builder initialize
-      builder: oneRequest.initLoading,
+      builder: OneRequest.initLoading,
       title: 'Flutter Demo',
       theme: ThemeData(
         // is not restarted.
@@ -44,9 +44,9 @@ class _MyHomePageState extends State<MyHomePage> {
   List<int> filebytes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
   Future<void> _incrementCounter() async {
     // One Request instance create
-    final request = oneRequest();
+    final request = OneRequest();
     // Send request
-    var value = await request.send(
+    var value = await request.send<Map<String, dynamic>>(
       // Request Url
       url: 'https://catfact.ninja/fact',
       // Request Method

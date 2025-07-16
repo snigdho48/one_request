@@ -10,8 +10,33 @@ import 'package:one_request/src/resourses/utils.dart';
 
 import 'model/error.dart';
 
+typedef ErrorHandler = String Function(Map<String, dynamic> errorBody, int? statusCode, String? url);
+typedef ErrorLogger = void Function(Object error, StackTrace? stackTrace);
+
 // ignore: camel_case_types
-class oneRequest {
+class OneRequest {
+  static String? _baseUrl;
+  static Map<String, String>? _globalHeaders;
+  static List<dio.Interceptor>? _globalInterceptors;
+
+  /// Configure global options for all requests.
+  static void configure({
+    String? baseUrl,
+    Map<String, String>? headers,
+    List<dio.Interceptor>? interceptors,
+  }) {
+    _baseUrl = baseUrl;
+    _globalHeaders = headers;
+    _globalInterceptors = interceptors;
+  }
+
+  /// Reset global configuration.
+  static void resetConfig() {
+    _baseUrl = null;
+    _globalHeaders = null;
+    _globalInterceptors = null;
+  }
+
   // ignore: non_constant_identifier_names
   // initializer
   static get dismissLoading => LoadingStuff.loadingDismiss();
@@ -121,6 +146,27 @@ class oneRequest {
         filename: filename ?? file.path.split('/').last,
       );
 
+  /// Optional error handler and logger types
+  static ErrorHandler? _customErrorHandler;
+  static ErrorLogger? _customLogger;
+
+  /// Set a custom error handler and logger for all requests.
+  static void setErrorHandler({ErrorHandler? handler, ErrorLogger? logger}) {
+    _customErrorHandler = handler;
+    _customLogger = logger;
+  }
+
+  /// Reset custom error handler and logger.
+  static void resetErrorHandler() {
+    _customErrorHandler = null;
+    _customLogger = null;
+  }
+
+  // Simple in-memory cache for GET requests
+  static final Map<String, dynamic> _cache = {};
+  /// Clear the in-memory cache
+  static void clearCache() => _cache.clear();
+
   // send request function constructor
   /// Sends an HTTP request with the given parameters and returns a [Future] that
   /// completes with an [Either] object containing either the response body or a
@@ -139,7 +185,7 @@ class oneRequest {
   /// number of seconds to wait for a response before timing out. The [innderData]
   /// parameter specifies whether to include the response data in the returned
   /// [Either] object.
-  Future<Either<dynamic, String>> send({
+  Future<Either<T, String>> send<T extends Object?>({
     Map<String, dynamic>? body,
     Map<String, dynamic>? queryParameters,
     bool formData = false,
@@ -153,8 +199,13 @@ class oneRequest {
     bool innderData = false,
     bool loader = true,
     bool resultOverlay = true,
+    dio.CancelToken? cancelToken,
+    List<dio.Interceptor>? interceptors,
+    int maxRetries = 0,
+    Duration retryDelay = const Duration(seconds: 1),
+    bool useCache = false,
   }) =>
-      _httpequest(
+      _httpequest<T>(
         body: body,
         queryParameters: queryParameters,
         url: url,
@@ -168,6 +219,11 @@ class oneRequest {
         innderData: innderData,
         loader: loader,
         resultOverlay: resultOverlay,
+        cancelToken: cancelToken,
+        interceptors: interceptors,
+        maxRetries: maxRetries,
+        retryDelay: retryDelay,
+        useCache: useCache,
       );
   // main request function
   /// Sends an HTTP request using Dio package.
@@ -197,7 +253,7 @@ class oneRequest {
   /// [innderData] is a boolean value indicating whether to return the inner data of the response or not.
   ///
   /// Returns a [Future] of [Either] of dynamic and [CustomExceptionHandlers].
-  Future<Either<dynamic, String>> _httpequest({
+  Future<Either<T, String>> _httpequest<T extends Object?>({
     Map<String, dynamic>? body,
     Map<String, dynamic>? queryParameters,
     bool formData = false,
@@ -212,8 +268,25 @@ class oneRequest {
     bool innderData = false,
     bool loader = true,
     bool resultOverlay = true,
+    dio.CancelToken? cancelToken,
+    List<dio.Interceptor>? interceptors,
+    int maxRetries = 0,
+    Duration retryDelay = const Duration(seconds: 1),
+    bool useCache = false,
   }) async {
     final r = dio.Dio();
+    // Apply global config
+    if (_baseUrl != null) {
+      url = _baseUrl! + url;
+    }
+    if (_globalHeaders != null) {
+      header = {...?_globalHeaders, ...?header};
+    }
+    // Add interceptors
+    final allInterceptors = <dio.Interceptor>[...?_globalInterceptors, ...?interceptors];
+    if (allInterceptors.isNotEmpty) {
+      r.interceptors.addAll(allInterceptors);
+    }
     if (loader) {
       LoadingStuff.loading();
     }
@@ -222,9 +295,11 @@ class oneRequest {
       'Accept': 'application/json',
     };
 
-    try {
-      final response = await r
-          .request(
+    int attempt = 0;
+    while (true) {
+      try {
+        final response = await r
+            .request(
             url,
             data: formData && body != null ? dio.FormData.fromMap(body) : body,
             queryParameters: queryParameters,
@@ -238,6 +313,7 @@ class oneRequest {
                   maxRedirects: maxRedirects,
                   validateStatus: (status) => true,
                 ),
+            cancelToken: cancelToken,
           )
           .timeout(
         Duration(seconds: timeout),
@@ -251,18 +327,29 @@ class oneRequest {
         EasyLoading.dismiss();
       }
 
+      // Only cache GET requests
+      final isGet = method == RequestType.GET;
+      final cacheKey = isGet ? _buildCacheKey(url, queryParameters) : null;
+      if (useCache && isGet && cacheKey != null && _cache.containsKey(cacheKey)) {
+        final cached = _cache[cacheKey];
+        return Left(cached as T);
+      }
+
       // Success responses
       if ([200, 201, 202, 203, 204].contains(response.statusCode)) {
         final responseJson = response.data;
         if (innderData) {
           try {
             if (responseJson is Map && responseJson['data'] != null && responseJson['data'] != '') {
-              return Left(responseJson['data']);
+              if (useCache && isGet && cacheKey != null) {
+                _cache[cacheKey] = responseJson['data'];
+              }
+              return Left(responseJson['data'] as T);
             } else {
               if (resultOverlay && responseJson is Map && responseJson['message'] != null) {
                 EasyLoading.showSuccess(responseJson['message'].toString());
               }
-              return Right(responseJson);
+              return Right(responseJson.toString());
             }
           } catch (e) {
             final msg = CustomExceptionHandlers(error: e).getExceptionString();
@@ -275,55 +362,142 @@ class oneRequest {
         if (resultOverlay) {
           EasyLoading.showSuccess(response.statusMessage?.toString() ?? 'Success');
         }
-        return Left(responseJson);
+        if (useCache && isGet && cacheKey != null) {
+          _cache[cacheKey] = responseJson;
+        }
+        return Left(responseJson as T);
       } else {
         // Error responses
-        String errorMsg = _extractErrorMessage(response.data) ?? response.statusMessage?.toString() ?? 'Unknown error occurred.';
+        String errorMsg;
+        if (_customErrorHandler != null && response.data is Map<String, dynamic>) {
+          errorMsg = _customErrorHandler!(response.data as Map<String, dynamic>, response.statusCode, url);
+        } else {
+          errorMsg = _extractErrorMessage(response.data) ?? response.statusMessage?.toString() ?? 'Unknown error occurred.';
+        }
         if (resultOverlay) {
           EasyLoading.showError(errorMsg);
         }
         return Right(errorMsg);
       }
-    } on dio.DioException catch (e) {
-      if (loader) EasyLoading.dismiss();
-      String msg;
-      if (e.type == dio.DioExceptionType.connectionTimeout ||
-          e.type == dio.DioExceptionType.sendTimeout ||
-          e.type == dio.DioExceptionType.receiveTimeout) {
-        msg = CustomExceptionHandlers(error: ApiNotRespondingException('Request timeout', url)).getExceptionString();
-      } else if (e.type == dio.DioExceptionType.badResponse) {
-        msg = _extractErrorMessage(e.response?.data) ?? CustomExceptionHandlers(error: BadRequestException(e.message ?? '', url)).getExceptionString();
-      } else if (e.type == dio.DioExceptionType.cancel) {
-        msg = 'Request was cancelled.';
-      } else {
-        msg = CustomExceptionHandlers(error: FetchDataException(e.message ?? '', url)).getExceptionString();
+      } on dio.DioException catch (e) {
+        if (loader) EasyLoading.dismiss();
+        String msg;
+        bool shouldRetry = false;
+        if (e.type == dio.DioExceptionType.connectionTimeout ||
+            e.type == dio.DioExceptionType.sendTimeout ||
+            e.type == dio.DioExceptionType.receiveTimeout) {
+          msg = CustomExceptionHandlers(error: ApiNotRespondingException('Request timeout', url)).getExceptionString();
+          shouldRetry = attempt < maxRetries;
+        } else if (e.type == dio.DioExceptionType.badResponse) {
+          if (_customErrorHandler != null && e.response?.data is Map<String, dynamic>) {
+            msg = _customErrorHandler!(e.response!.data as Map<String, dynamic>, e.response?.statusCode, url);
+          } else {
+            msg = _extractErrorMessage(e.response?.data) ?? CustomExceptionHandlers(error: BadRequestException(e.message ?? '', url)).getExceptionString();
+          }
+        } else if (e.type == dio.DioExceptionType.cancel) {
+          msg = 'Request was cancelled.';
+        } else {
+          msg = CustomExceptionHandlers(error: FetchDataException(e.message ?? '', url)).getExceptionString();
+        }
+        if (_customLogger != null) {
+          _customLogger!(e, e.stackTrace);
+        }
+        if (shouldRetry) {
+          attempt++;
+          await Future.delayed(retryDelay);
+          continue;
+        }
+        if (resultOverlay) {
+          EasyLoading.showError(msg);
+        }
+        return Right(msg);
+      } on SocketException catch (e) {
+        if (loader) EasyLoading.dismiss();
+        final msg = CustomExceptionHandlers(error: e).getExceptionString();
+        if (_customLogger != null) {
+          _customLogger!(e, null);
+        }
+        if (resultOverlay) {
+          EasyLoading.showError(msg);
+        }
+        return Right(msg);
+      } on AppException catch (e) {
+        if (loader) EasyLoading.dismiss();
+        final msg = CustomExceptionHandlers(error: e).getExceptionString();
+        if (_customLogger != null) {
+          _customLogger!(e, null);
+        }
+        if (resultOverlay) {
+          EasyLoading.showError(msg);
+        }
+        return Right(msg);
+      } catch (e, stack) {
+        if (loader) EasyLoading.dismiss();
+        final msg = CustomExceptionHandlers(error: e).getExceptionString();
+        if (_customLogger != null) {
+          _customLogger!(e, stack);
+        }
+        if (resultOverlay) {
+          EasyLoading.showError(msg);
+        }
+        return Right(msg);
       }
-      if (resultOverlay) {
-        EasyLoading.showError(msg);
-      }
-      return Right(msg);
-    } on SocketException catch (e) {
-      if (loader) EasyLoading.dismiss();
-      final msg = CustomExceptionHandlers(error: e).getExceptionString();
-      if (resultOverlay) {
-        EasyLoading.showError(msg);
-      }
-      return Right(msg);
-    } on AppException catch (e) {
-      if (loader) EasyLoading.dismiss();
-      final msg = CustomExceptionHandlers(error: e).getExceptionString();
-      if (resultOverlay) {
-        EasyLoading.showError(msg);
-      }
-      return Right(msg);
-    } catch (e) {
-      if (loader) EasyLoading.dismiss();
-      final msg = CustomExceptionHandlers(error: e).getExceptionString();
-      if (resultOverlay) {
-        EasyLoading.showError(msg);
-      }
-      return Right(msg);
+      break;
     }
+  }
+
+  /// Batch request support: send multiple requests in parallel.
+  /// Each item in [requests] is a map of parameters for the send<T>() method.
+  /// Returns a list of results in the same order.
+  /// Optionally, set [maxRetries] and [retryDelay] for exponential backoff on transient errors.
+  static Future<List<Either<T, String>>> batch<T extends Object?>(
+    List<Map<String, dynamic>> requests, {
+    int maxRetries = 0,
+    Duration retryDelay = const Duration(seconds: 1),
+    bool exponentialBackoff = false,
+  }) async {
+    Future<Either<T, String>> runWithRetry(Map<String, dynamic> params) async {
+      int attempt = 0;
+      Duration delay = retryDelay;
+      while (true) {
+        try {
+          return await OneRequest().send<T>(
+            // Spread the params map into named arguments
+            // This requires the params map to use the same keys as send()
+            // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+            body: params['body'],
+            queryParameters: params['queryParameters'],
+            formData: params['formData'] ?? false,
+            responsetype: params['responsetype'] ?? ResponseType.json,
+            url: params['url'],
+            method: params['method'],
+            header: params['header'],
+            maxRedirects: params['maxRedirects'] ?? 1,
+            contentType: params['contentType'] ?? ContentType.json,
+            timeout: params['timeout'] ?? 60,
+            innderData: params['innderData'] ?? false,
+            loader: params['loader'] ?? true,
+            resultOverlay: params['resultOverlay'] ?? true,
+            cancelToken: params['cancelToken'],
+            interceptors: params['interceptors'],
+            maxRetries: params['maxRetries'] ?? maxRetries,
+            retryDelay: params['retryDelay'] ?? retryDelay,
+            useCache: params['useCache'] ?? false,
+          );
+        } catch (e) {
+          if (attempt < maxRetries) {
+            await Future.delayed(delay);
+            attempt++;
+            if (exponentialBackoff) {
+              delay *= 2;
+            }
+            continue;
+          }
+          return Right(e.toString());
+        }
+      }
+    }
+    return Future.wait(requests.map(runWithRetry));
   }
 
   // Helper to extract error message from various response formats
@@ -339,5 +513,12 @@ class oneRequest {
       return data.first.toString();
     }
     return null;
+  }
+
+  // Helper to build a cache key from URL and query params
+  String _buildCacheKey(String url, Map<String, dynamic>? query) {
+    if (query == null || query.isEmpty) return url;
+    final sorted = Map.fromEntries(query.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
+    return '$url?${sorted.entries.map((e) => '${e.key}=${e.value}').join('&')}';
   }
 }
