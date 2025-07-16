@@ -3,8 +3,10 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'circulerprogressindictor_customize.dart';
 
-typedef LoadingWidgetBuilder = Widget Function(BuildContext context, String? status);
-typedef ErrorWidgetBuilder = Widget Function(BuildContext context, String message);
+typedef LoadingWidgetBuilder = Widget Function(
+    BuildContext context, String? status);
+typedef ErrorWidgetBuilder = Widget Function(
+    BuildContext context, String message);
 typedef ErrorLocalization = String Function(String message);
 
 /// A utility class for displaying loading indicators using EasyLoading.
@@ -37,7 +39,11 @@ class LoadingStuff {
   ///
   /// If [status] is provided, it will be displayed as the status message for the loading indicator.
   /// Otherwise, the default status message "loading" will be used.
-  static loading({String? status, Color? color, Widget? indicator, BuildContext? context}) {
+  static loading(
+      {String? status,
+      Color? color,
+      Widget? indicator,
+      BuildContext? context}) {
     if (customLoadingBuilder != null && context != null) {
       return EasyLoading.show(
         status: status ?? 'loading',
@@ -62,10 +68,12 @@ class LoadingStuff {
 
   /// Show a custom error widget if provided, otherwise use EasyLoading default.
   static void showError(String message, {BuildContext? context}) {
-    final localizedMsg = errorLocalization != null ? errorLocalization!(message) : message;
+    final localizedMsg =
+        errorLocalization != null ? errorLocalization!(message) : message;
     if (customErrorBuilder != null && context != null) {
       final prevErrorWidget = EasyLoading.instance.errorWidget;
-      EasyLoading.instance.errorWidget = customErrorBuilder!(context, localizedMsg);
+      EasyLoading.instance.errorWidget =
+          customErrorBuilder!(context, localizedMsg);
       EasyLoading.showError(localizedMsg);
       // Optionally reset after a short delay
       Future.delayed(const Duration(seconds: 2), () {

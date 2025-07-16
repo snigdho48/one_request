@@ -165,7 +165,10 @@ class _MyHomePageState extends State<MyHomePage> {
         'url': '/fact',
         'method': RequestType.GET,
       },
-    ], maxRetries: 1, retryDelay: Duration(milliseconds: 500), exponentialBackoff: true);
+    ],
+        maxRetries: 1,
+        retryDelay: Duration(milliseconds: 500),
+        exponentialBackoff: true);
     setState(() {
       // Each result is an Either, so you can check .isLeft (success) or .isRight (error)
       _result = results
@@ -247,13 +250,23 @@ class _MyHomePageState extends State<MyHomePage> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                ElevatedButton(onPressed: _getFact, child: const Text('GET (Type-safe)')),
-                ElevatedButton(onPressed: _postExample, child: const Text('POST (Type-safe)')),
-                ElevatedButton(onPressed: _getWithCache, child: const Text('GET with Cache')),
-                ElevatedButton(onPressed: _batchRequests, child: const Text('Batch Requests')),
-                ElevatedButton(onPressed: _retryExample, child: const Text('Retry Logic')),
-                ElevatedButton(onPressed: _fileUpload, child: const Text('File Upload')),
-                ElevatedButton(onPressed: _clearCache, child: const Text('Clear Cache')),
+                ElevatedButton(
+                    onPressed: _getFact, child: const Text('GET (Type-safe)')),
+                ElevatedButton(
+                    onPressed: _postExample,
+                    child: const Text('POST (Type-safe)')),
+                ElevatedButton(
+                    onPressed: _getWithCache,
+                    child: const Text('GET with Cache')),
+                ElevatedButton(
+                    onPressed: _batchRequests,
+                    child: const Text('Batch Requests')),
+                ElevatedButton(
+                    onPressed: _retryExample, child: const Text('Retry Logic')),
+                ElevatedButton(
+                    onPressed: _fileUpload, child: const Text('File Upload')),
+                ElevatedButton(
+                    onPressed: _clearCache, child: const Text('Clear Cache')),
               ],
             ),
             const SizedBox(height: 8),

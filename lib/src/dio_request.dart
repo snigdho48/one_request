@@ -10,7 +10,8 @@ import 'package:one_request/src/resourses/utils.dart';
 
 import 'model/error.dart';
 
-typedef ErrorHandler = String Function(Map<String, dynamic> errorBody, int? statusCode, String? url);
+typedef ErrorHandler = String Function(
+    Map<String, dynamic> errorBody, int? statusCode, String? url);
 typedef ErrorLogger = void Function(Object error, StackTrace? stackTrace);
 
 // ignore: camel_case_types
@@ -164,6 +165,7 @@ class OneRequest {
 
   // Simple in-memory cache for GET requests
   static final Map<String, dynamic> _cache = {};
+
   /// Clear the in-memory cache
   static void clearCache() => _cache.clear();
 
@@ -283,102 +285,121 @@ class OneRequest {
       header = {...?_globalHeaders, ...?header};
     }
     // Add interceptors
-    final allInterceptors = <dio.Interceptor>[...?_globalInterceptors, ...?interceptors];
+    final allInterceptors = <dio.Interceptor>[
+      ...?_globalInterceptors,
+      ...?interceptors
+    ];
     if (allInterceptors.isNotEmpty) {
       r.interceptors.addAll(allInterceptors);
     }
     if (loader) {
       LoadingStuff.loading();
     }
-    var headers = header ?? {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
+    var headers = header ??
+        {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
 
     int attempt = 0;
     while (true) {
       try {
         final response = await r
             .request(
-            url,
-            data: formData && body != null ? dio.FormData.fromMap(body) : body,
-            queryParameters: queryParameters,
-            options: options ??
-                dio.Options(
-                  contentType: contentType.value,
-                  responseType: responsetype.value,
-                  followRedirects: maxRedirects != 1 ? true : false,
-                  method: method.value,
-                  headers: headers,
-                  maxRedirects: maxRedirects,
-                  validateStatus: (status) => true,
-                ),
-            cancelToken: cancelToken,
-          )
-          .timeout(
-        Duration(seconds: timeout),
-        onTimeout: () {
-          r.close();
-          throw ApiNotRespondingException('Request timeout', url);
-        },
-      );
+          url,
+          data: formData && body != null ? dio.FormData.fromMap(body) : body,
+          queryParameters: queryParameters,
+          options: options ??
+              dio.Options(
+                contentType: contentType.value,
+                responseType: responsetype.value,
+                followRedirects: maxRedirects != 1 ? true : false,
+                method: method.value,
+                headers: headers,
+                maxRedirects: maxRedirects,
+                validateStatus: (status) => true,
+              ),
+          cancelToken: cancelToken,
+        )
+            .timeout(
+          Duration(seconds: timeout),
+          onTimeout: () {
+            r.close();
+            throw ApiNotRespondingException('Request timeout', url);
+          },
+        );
 
-      if (loader) {
-        EasyLoading.dismiss();
-      }
+        if (loader) {
+          EasyLoading.dismiss();
+        }
 
-      // Only cache GET requests
-      final isGet = method == RequestType.GET;
-      final cacheKey = isGet ? _buildCacheKey(url, queryParameters) : null;
-      if (useCache && isGet && cacheKey != null && _cache.containsKey(cacheKey)) {
-        final cached = _cache[cacheKey];
-        return Left(cached as T);
-      }
+        // Only cache GET requests
+        final isGet = method == RequestType.GET;
+        final cacheKey = isGet ? _buildCacheKey(url, queryParameters) : null;
+        if (useCache &&
+            isGet &&
+            cacheKey != null &&
+            _cache.containsKey(cacheKey)) {
+          final cached = _cache[cacheKey];
+          return Left(cached as T);
+        }
 
-      // Success responses
-      if ([200, 201, 202, 203, 204].contains(response.statusCode)) {
-        final responseJson = response.data;
-        if (innderData) {
-          try {
-            if (responseJson is Map && responseJson['data'] != null && responseJson['data'] != '') {
-              if (useCache && isGet && cacheKey != null) {
-                _cache[cacheKey] = responseJson['data'];
+        // Success responses
+        if ([200, 201, 202, 203, 204].contains(response.statusCode)) {
+          final responseJson = response.data;
+          if (innderData) {
+            try {
+              if (responseJson is Map &&
+                  responseJson['data'] != null &&
+                  responseJson['data'] != '') {
+                if (useCache && isGet && cacheKey != null) {
+                  _cache[cacheKey] = responseJson['data'];
+                }
+                return Left(responseJson['data'] as T);
+              } else {
+                if (resultOverlay &&
+                    responseJson is Map &&
+                    responseJson['message'] != null) {
+                  EasyLoading.showSuccess(responseJson['message'].toString());
+                }
+                return Right(responseJson.toString());
               }
-              return Left(responseJson['data'] as T);
-            } else {
-              if (resultOverlay && responseJson is Map && responseJson['message'] != null) {
-                EasyLoading.showSuccess(responseJson['message'].toString());
+            } catch (e) {
+              final msg =
+                  CustomExceptionHandlers(error: e).getExceptionString();
+              if (resultOverlay) {
+                EasyLoading.showError(msg);
               }
-              return Right(responseJson.toString());
+              return Right(msg);
             }
-          } catch (e) {
-            final msg = CustomExceptionHandlers(error: e).getExceptionString();
-            if (resultOverlay) {
-              EasyLoading.showError(msg);
-            }
-            return Right(msg);
           }
-        }
-        if (resultOverlay) {
-          EasyLoading.showSuccess(response.statusMessage?.toString() ?? 'Success');
-        }
-        if (useCache && isGet && cacheKey != null) {
-          _cache[cacheKey] = responseJson;
-        }
-        return Left(responseJson as T);
-      } else {
-        // Error responses
-        String errorMsg;
-        if (_customErrorHandler != null && response.data is Map<String, dynamic>) {
-          errorMsg = _customErrorHandler!(response.data as Map<String, dynamic>, response.statusCode, url);
+          if (resultOverlay) {
+            EasyLoading.showSuccess(
+                response.statusMessage?.toString() ?? 'Success');
+          }
+          if (useCache && isGet && cacheKey != null) {
+            _cache[cacheKey] = responseJson;
+          }
+          return Left(responseJson as T);
         } else {
-          errorMsg = _extractErrorMessage(response.data) ?? response.statusMessage?.toString() ?? 'Unknown error occurred.';
+          // Error responses
+          String errorMsg;
+          if (_customErrorHandler != null &&
+              response.data is Map<String, dynamic>) {
+            errorMsg = _customErrorHandler!(
+                response.data as Map<String, dynamic>,
+                response.statusCode,
+                url);
+          } else {
+            errorMsg = _extractErrorMessage(response.data) ??
+                response.statusMessage?.toString() ??
+                'Unknown error occurred.';
+          }
+          if (resultOverlay) {
+            EasyLoading.showError(errorMsg);
+          }
+          return Right(errorMsg);
         }
-        if (resultOverlay) {
-          EasyLoading.showError(errorMsg);
-        }
-        return Right(errorMsg);
-      }
       } on dio.DioException catch (e) {
         if (loader) EasyLoading.dismiss();
         String msg;
@@ -386,18 +407,27 @@ class OneRequest {
         if (e.type == dio.DioExceptionType.connectionTimeout ||
             e.type == dio.DioExceptionType.sendTimeout ||
             e.type == dio.DioExceptionType.receiveTimeout) {
-          msg = CustomExceptionHandlers(error: ApiNotRespondingException('Request timeout', url)).getExceptionString();
+          msg = CustomExceptionHandlers(
+                  error: ApiNotRespondingException('Request timeout', url))
+              .getExceptionString();
           shouldRetry = attempt < maxRetries;
         } else if (e.type == dio.DioExceptionType.badResponse) {
-          if (_customErrorHandler != null && e.response?.data is Map<String, dynamic>) {
-            msg = _customErrorHandler!(e.response!.data as Map<String, dynamic>, e.response?.statusCode, url);
+          if (_customErrorHandler != null &&
+              e.response?.data is Map<String, dynamic>) {
+            msg = _customErrorHandler!(e.response!.data as Map<String, dynamic>,
+                e.response?.statusCode, url);
           } else {
-            msg = _extractErrorMessage(e.response?.data) ?? CustomExceptionHandlers(error: BadRequestException(e.message ?? '', url)).getExceptionString();
+            msg = _extractErrorMessage(e.response?.data) ??
+                CustomExceptionHandlers(
+                        error: BadRequestException(e.message ?? '', url))
+                    .getExceptionString();
           }
         } else if (e.type == dio.DioExceptionType.cancel) {
           msg = 'Request was cancelled.';
         } else {
-          msg = CustomExceptionHandlers(error: FetchDataException(e.message ?? '', url)).getExceptionString();
+          msg = CustomExceptionHandlers(
+                  error: FetchDataException(e.message ?? '', url))
+              .getExceptionString();
         }
         if (_customLogger != null) {
           _customLogger!(e, e.stackTrace);
@@ -496,6 +526,7 @@ class OneRequest {
         }
       }
     }
+
     return Future.wait(requests.map(runWithRetry));
   }
 
@@ -517,7 +548,8 @@ class OneRequest {
   // Helper to build a cache key from URL and query params
   String _buildCacheKey(String url, Map<String, dynamic>? query) {
     if (query == null || query.isEmpty) return url;
-    final sorted = Map.fromEntries(query.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
+    final sorted = Map.fromEntries(
+        query.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
     return '$url?${sorted.entries.map((e) => '${e.key}=${e.value}').join('&')}';
   }
 }

@@ -61,6 +61,7 @@ void main() {
         }
         return Left({'ok': true});
       }
+
       int maxRetries = 2;
       int attempt = 0;
       Either<Map<String, dynamic>, String>? result;
@@ -69,7 +70,8 @@ void main() {
           result = await fakeRequest();
           break;
         } on dio.DioException catch (e) {
-          if (e.type == dio.DioExceptionType.connectionTimeout && attempt < maxRetries) {
+          if (e.type == dio.DioExceptionType.connectionTimeout &&
+              attempt < maxRetries) {
             attempt++;
             await Future.delayed(const Duration(milliseconds: 10));
             continue;
@@ -89,7 +91,8 @@ void main() {
       expect(() => OneRequest.configure(headers: {'x': 'y'}), returnsNormally);
     });
 
-    testWidgets('custom loading and error widget logic', (WidgetTester tester) async {
+    testWidgets('custom loading and error widget logic',
+        (WidgetTester tester) async {
       bool loadingCalled = false;
       bool errorCalled = false;
       LoadingStuff.setCustomBuilders(
@@ -118,4 +121,4 @@ void main() {
       ));
     });
   });
-} 
+}

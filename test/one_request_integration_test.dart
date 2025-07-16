@@ -17,7 +17,8 @@ void main() {
       LoadingStuff.resetCustomBuilders();
     });
 
-    testWidgets('shows loading and success overlay on GET success', (WidgetTester tester) async {
+    testWidgets('shows loading and success overlay on GET success',
+        (WidgetTester tester) async {
       // Use a test widget
       await tester.pumpWidget(MaterialApp(
         builder: OneRequest.initLoading,
@@ -36,7 +37,8 @@ void main() {
       expect(find.text('Cats are cool!'), findsOneWidget);
     });
 
-    testWidgets('shows loading and error overlay on GET error', (WidgetTester tester) async {
+    testWidgets('shows loading and error overlay on GET error',
+        (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
         builder: OneRequest.initLoading,
         home: Scaffold(
@@ -81,7 +83,7 @@ class _TestRequestWidgetState extends State<TestRequestWidget> {
       loader: true,
       resultOverlay: true,
     );
-    
+
     response.fold(
       (data) => setState(() => result = data['fact'] ?? 'No fact'),
       (error) => setState(() => result = 'error: $error'),
@@ -101,4 +103,4 @@ class _TestRequestWidgetState extends State<TestRequestWidget> {
       ],
     );
   }
-} 
+}
