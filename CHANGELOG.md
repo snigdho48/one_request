@@ -1,3 +1,50 @@
+## [2.2.0] - 2025-01-XX
+### Added
+- **Separate Error and Response Loggers** with independent control
+  - `enableErrorLogger`: Logs errors (4xx, 5xx, exceptions) in red
+  - `enableResponseLogger`: Logs successful responses (2xx, 3xx) in green/yellow
+  - Request logging automatically enabled when any logger is enabled
+  - New methods: `setErrorLoggerEnabled()`, `setResponseLoggerEnabled()`, `isErrorLoggerEnabled()`, `isResponseLoggerEnabled()`
+- **Enhanced Colored API Logging** with full response display
+  - Color-coded output: Green (success), Red (error), Yellow (warning/redirects), Blue (info)
+  - Full JSON response display with proper formatting and indentation
+  - No truncation - complete response data is shown
+  - Line-by-line printing to avoid buffer limits
+  - Request/response inspection with masked sensitive headers
+  - Duration tracking and status code highlighting
+  - Enable/disable via `configure(enableErrorLogger: true, enableResponseLogger: true)` or legacy `enableLogger: true`
+- **Global overlay controls** for loading, error, and success overlays
+  - `setOverlaySettings()` to control overlays globally
+  - `getOverlaySettings()` to check current settings (includes logger states)
+  - Per-request overlay settings still work (respects global settings)
+- **Automatic redirect following** with configurable `maxRedirects`
+  - Automatically follows 3xx redirects
+  - Logs redirect information when response logger is enabled
+  - Handles both relative and absolute redirect URLs
+- Enhanced error message extraction with multiple fallback strategies
+- Improved error handling to ensure non-empty error messages
+- Warning and info logging methods with proper logger routing
+
+### Changed
+- Logger configuration now supports separate error and response loggers
+- Response logger shows only successful responses (2xx, 3xx) - errors are handled by error logger
+- Request logging is automatically enabled when any logger type is enabled
+- Improved JSON formatting with proper indentation using `JsonEncoder.withIndent()`
+- Response data is printed line-by-line to prevent truncation issues
+- Error logger handles all error scenarios (4xx, 5xx, exceptions, timeouts)
+- Updated `configure()` method to accept `enableErrorLogger` and `enableResponseLogger` parameters
+- Legacy `enableLogger` parameter still works (enables both loggers for backward compatibility)
+
+### Fixed
+- Response logger now displays full response data without truncation
+- Fixed empty error messages by adding comprehensive fallback strategies
+- Redirect handling now properly follows 3xx status codes and logs them as responses
+- Improved error message extraction from various response formats (Map, List, String)
+- Fixed ANSI color code handling in console output
+- Enhanced error message validation to ensure non-empty messages are always returned
+
+---
+
 ## [2.1.0] - 2025-07-16
 ### Added
 - Type-safe, generic API (`send<T>()`)

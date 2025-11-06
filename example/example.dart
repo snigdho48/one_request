@@ -35,6 +35,13 @@ void main() async {
   OneRequest.configure(
     baseUrl: 'https://catfact.ninja',
     headers: {'X-Global-Header': 'global'},
+    // Enable colored API logging for development
+    enableErrorLogger: true, // Show errors (4xx, 5xx, exceptions) in red
+    enableResponseLogger: true, // Show successful responses (2xx, 3xx) in green
+    // Global overlay settings
+    enableLoader: true, // Show loading spinner
+    enableErrorOverlay: false, // Hide error popups (handle in UI)
+    enableSuccessOverlay: false, // Hide success popups (handle in UI)
   );
 
   // Optional: Custom error handler and logger
@@ -42,6 +49,21 @@ void main() async {
     handler: (body, status, url) => body['message'] ?? 'Unknown error',
     logger: (error, stack) => print('Logged error: $error'),
   );
+
+  // Optional: Enable/disable loggers separately
+  // OneRequest.setErrorLoggerEnabled(true);    // Enable error logging only
+  // OneRequest.setResponseLoggerEnabled(true); // Enable response logging only
+  // Or use legacy method to enable both:
+  // OneRequest.setLoggerEnabled(true);
+
+  // Check logger status
+  if (OneRequest.isLoggerEnabled()) {
+    print('✅ API logging is enabled');
+    print(
+        '   - Error Logger: ${OneRequest.isErrorLoggerEnabled() ? "✅" : "❌"}');
+    print(
+        '   - Response Logger: ${OneRequest.isResponseLoggerEnabled() ? "✅" : "❌"}');
+  }
 
   // Optional: Custom loading/error widgets and localization
   LoadingStuff.setCustomBuilders(
@@ -229,6 +251,38 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() => _result = 'Cache cleared!');
   }
 
+  // Toggle logger settings
+  // Purpose: Demonstrates how to enable/disable error and response loggers dynamically.
+  void _toggleLoggers() {
+    final currentErrorLogger = OneRequest.isErrorLoggerEnabled();
+    final currentResponseLogger = OneRequest.isResponseLoggerEnabled();
+
+    OneRequest.setErrorLoggerEnabled(!currentErrorLogger);
+    OneRequest.setResponseLoggerEnabled(!currentResponseLogger);
+
+    final settings = OneRequest.getOverlaySettings();
+    setState(() {
+      _result = 'Logger Settings:\n'
+          'Error Logger: ${(settings['errorLogger'] ?? false) ? "✅ Enabled" : "❌ Disabled"}\n'
+          'Response Logger: ${(settings['responseLogger'] ?? false) ? "✅ Enabled" : "❌ Disabled"}\n'
+          'Request Logger: ✅ Auto-enabled (when any logger is enabled)';
+    });
+  }
+
+  // Check overlay settings
+  // Purpose: Shows how to check current overlay and logger settings.
+  void _checkSettings() {
+    final settings = OneRequest.getOverlaySettings();
+    setState(() {
+      _result = 'Current Settings:\n'
+          'Loader: ${(settings['loader'] ?? false) ? "✅ Enabled" : "❌ Disabled"}\n'
+          'Error Overlay: ${(settings['errorOverlay'] ?? false) ? "✅ Enabled" : "❌ Disabled"}\n'
+          'Success Overlay: ${(settings['successOverlay'] ?? false) ? "✅ Enabled" : "❌ Disabled"}\n'
+          'Error Logger: ${(settings['errorLogger'] ?? false) ? "✅ Enabled" : "❌ Disabled"}\n'
+          'Response Logger: ${(settings['responseLogger'] ?? false) ? "✅ Enabled" : "❌ Disabled"}';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -267,6 +321,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: _fileUpload, child: const Text('File Upload')),
                 ElevatedButton(
                     onPressed: _clearCache, child: const Text('Clear Cache')),
+                ElevatedButton(
+                    onPressed: _toggleLoggers,
+                    child: const Text('Toggle Loggers')),
+                ElevatedButton(
+                    onPressed: _checkSettings,
+                    child: const Text('Check Settings')),
               ],
             ),
             const SizedBox(height: 8),

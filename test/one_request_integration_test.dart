@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:one_request/one_request.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
-import 'dart:convert';
 
 void main() {
   group('OneRequest Integration/Widget Tests', () {
@@ -15,6 +12,9 @@ void main() {
       OneRequest.resetConfig();
       OneRequest.resetErrorHandler();
       LoadingStuff.resetCustomBuilders();
+      // Disable loggers for tests to avoid console spam
+      OneRequest.setErrorLoggerEnabled(false);
+      OneRequest.setResponseLoggerEnabled(false);
     });
 
     testWidgets('shows loading and success overlay on GET success',
@@ -53,6 +53,32 @@ void main() {
       await tester.pump(); // Start loading
       await tester.pump(const Duration(seconds: 2)); // Wait for response
       expect(find.textContaining('error', findRichText: true), findsOneWidget);
+    });
+
+    testWidgets('overlay settings respect global configuration',
+        (WidgetTester tester) async {
+      // Disable overlays globally
+      OneRequest.setOverlaySettings(
+        enableLoader: false,
+        enableErrorOverlay: false,
+        enableSuccessOverlay: false,
+      );
+
+      await tester.pumpWidget(MaterialApp(
+        builder: OneRequest.initLoading,
+        home: Scaffold(
+          body: TestRequestWidget(
+            request: request,
+            url: 'https://catfact.ninja/fact',
+            expectSuccess: true,
+          ),
+        ),
+      ));
+
+      final settings = OneRequest.getOverlaySettings();
+      expect(settings['loader'], false);
+      expect(settings['errorOverlay'], false);
+      expect(settings['successOverlay'], false);
     });
   });
 }

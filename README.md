@@ -22,10 +22,13 @@ and the Flutter guide for
 - Per-request customization: interceptors, cancel tokens
 - Retry logic for transient errors (with exponential backoff)
 - Custom error handling and logging
+- **Separate Error and Response Loggers** with independent control (error=red, success=green, warning=yellow, info=blue)
+- **Global overlay controls** (loading, error, success overlays)
 - Fully customizable loading and error widgets
 - Error message localization support
 - **Offline support (caching)** for GET requests
 - **Batch requests**: send multiple requests in parallel
+- Automatic redirect following
 
 ---
 
@@ -52,7 +55,19 @@ void main() async {
     baseUrl: 'https://api.example.com',
     headers: {'Authorization': 'Bearer token'},
     interceptors: [/* your Dio interceptors */],
+    enableErrorLogger: true, // Enable error logging (shows errors in red)
+    enableResponseLogger: true, // Enable response logging (shows successful responses in green)
+    enableLoader: true, // Enable loading overlay globally
+    enableErrorOverlay: false, // Disable error overlay globally
+    enableSuccessOverlay: false, // Disable success overlay globally
   );
+  
+  // Or use legacy method to enable both loggers
+  OneRequest.setLoggerEnabled(true); // Enables both error and response loggers
+  
+  // Or enable/disable loggers separately
+  OneRequest.setErrorLoggerEnabled(true); // Enable error logging only
+  OneRequest.setResponseLoggerEnabled(true); // Enable response logging only
 
   // Set custom error handler, logger, and widget builders (optional)
   OneRequest.setErrorHandler(
@@ -110,6 +125,122 @@ result.fold(
   (data) => print('Success: $data'),
   (error) => print('Error: $error'),
 );
+```
+
+---
+
+## API Logging (Colored Output)
+
+Enable colored logging to inspect all API requests, responses, and errors in your console. You can enable error logging and response logging independently:
+
+```dart
+// Enable both loggers (recommended for development)
+OneRequest.configure(
+  enableErrorLogger: true,    // Show errors (4xx, 5xx, exceptions)
+  enableResponseLogger: true, // Show successful responses (2xx, 3xx)
+);
+
+// Or enable separately
+OneRequest.setErrorLoggerEnabled(true);    // Enable error logging only
+OneRequest.setResponseLoggerEnabled(true); // Enable response logging only
+
+// Or use legacy method (enables both)
+OneRequest.setLoggerEnabled(true);
+
+// Check logger status
+if (OneRequest.isErrorLoggerEnabled()) {
+  print('Error logger is enabled');
+}
+if (OneRequest.isResponseLoggerEnabled()) {
+  print('Response logger is enabled');
+}
+```
+
+**Logger Types:**
+- **Error Logger**: Shows errors (4xx, 5xx status codes, exceptions, timeouts) in red
+- **Response Logger**: Shows successful responses (2xx, 3xx status codes) in green/yellow
+- **Request Logger**: Automatically enabled when any logger is enabled (shows all requests in blue)
+
+**Color Coding:**
+- 🔵 **Blue**: API requests (auto-enabled when any logger is enabled)
+- 🟢 **Green**: Successful responses (2xx status codes)
+- 🟡 **Yellow**: Redirects (3xx status codes) and warnings
+- 🔴 **Red**: Errors (4xx, 5xx status codes, exceptions)
+- ⚪ **Gray**: Request/response data (formatted JSON)
+
+**Example Output:**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📤 ONE_REQUEST: GET https://api.example.com/users
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 Query Parameters:
+   page: 1
+📨 Headers:
+   Authorization: Bearer token...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 ONE_REQUEST RESPONSE: https://api.example.com/users
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⏱️  Duration: 245ms
+📊 Status: ✅ 200 OK
+📦 Response Data:
+   {
+     "users": [
+       {
+         "id": 1,
+         "name": "John Doe",
+         "email": "john@example.com"
+       }
+     ]
+   }
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Features:**
+- Full JSON response display with proper formatting and indentation
+- No truncation - complete response data is shown
+- Line-by-line printing to avoid buffer limits
+- Masked sensitive headers (Authorization, etc.)
+- Duration tracking for performance monitoring
+
+**Disable logging for production:**
+```dart
+OneRequest.setErrorLoggerEnabled(false);    // Disable error logging
+OneRequest.setResponseLoggerEnabled(false); // Disable response logging
+// Or disable both
+OneRequest.setLoggerEnabled(false);
+```
+
+---
+
+## Global Overlay Controls
+
+Control loading, error, and success overlays globally:
+
+```dart
+// Configure overlay settings
+OneRequest.configure(
+  enableLoader: true,        // Show loading spinner
+  enableErrorOverlay: false, // Hide error popups
+  enableSuccessOverlay: false, // Hide success popups
+);
+
+// Or update settings dynamically
+OneRequest.setOverlaySettings(
+  enableLoader: false,
+  enableErrorOverlay: true,
+  enableSuccessOverlay: true,
+);
+
+// Check current settings
+final settings = OneRequest.getOverlaySettings();
+print('Loader: ${settings['loader']}');
+print('Error Overlay: ${settings['errorOverlay']}');
+print('Success Overlay: ${settings['successOverlay']}');
+print('Error Logger: ${settings['errorLogger']}');
+print('Response Logger: ${settings['responseLogger']}');
+print('Logger (any enabled): ${settings['logger']}');
 ```
 
 ---
@@ -180,6 +311,9 @@ for (final result in batchResults) {
 | Custom error handling  | `setErrorHandler(...)`                    |
 | Custom loading/error   | `setCustomBuilders(...)`                   |
 | Localization           | `setCustomBuilders(localization: ...)`    |
+| **Colored logging**    | `setLoggerEnabled(true)`                  |
+| **Global overlays**    | `setOverlaySettings(...)`                 |
+| **Redirect following** | `maxRedirects: 5` (automatic)             |
 
 ---
 
@@ -194,6 +328,15 @@ for (final result in batchResults) {
   - See the integration test for widget testing with overlays.
 - **How do I handle custom error payloads?**
   - Use `setErrorHandler` to extract and format error messages.
+- **How do I enable API logging?**
+  - Call `OneRequest.setErrorLoggerEnabled(true)` for errors, `OneRequest.setResponseLoggerEnabled(true)` for responses, or use `OneRequest.setLoggerEnabled(true)` to enable both (legacy method).
+  - You can also set `enableErrorLogger: true` and `enableResponseLogger: true` in `configure()`.
+- **What's the difference between error logger and response logger?**
+  - Error logger shows errors (4xx, 5xx, exceptions) in red. Response logger shows successful responses (2xx, 3xx) in green/yellow. Request logging is automatically enabled when any logger is enabled.
+- **How do I disable overlays globally?**
+  - Use `OneRequest.setOverlaySettings(enableLoader: false, enableErrorOverlay: false, enableSuccessOverlay: false)`.
+- **Why are my requests being redirected?**
+  - Django REST Framework and some APIs require trailing slashes. The package automatically follows redirects when `maxRedirects > 1`.
 
 ---
 

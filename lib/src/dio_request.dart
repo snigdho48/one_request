@@ -1,10 +1,12 @@
 import 'dart:core';
+import 'dart:convert';
 import 'dart:io' if (dart.library.html) 'dart:html';
 
 import 'package:dio/dio.dart' as dio;
 import 'package:either_dart/either.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:logging/logging.dart';
 import 'package:one_request/src/resourses/types.dart';
 import 'package:one_request/src/resourses/utils.dart';
 
@@ -20,22 +22,145 @@ class OneRequest {
   static Map<String, String>? _globalHeaders;
   static List<dio.Interceptor>? _globalInterceptors;
 
+  // Global overlay settings
+  static bool _globalLoaderEnabled = true;
+  static bool _globalErrorOverlayEnabled = true;
+  static bool _globalSuccessOverlayEnabled = true;
+
+  // Global logger settings
+  static bool _loggerEnabled = false; // Disabled by default for production
+  static bool _errorLoggerEnabled = false; // Error logger (disabled by default)
+  static bool _responseLoggerEnabled =
+      false; // Response logger (disabled by default)
+  static final Logger _logger = Logger('OneRequest');
+
   /// Configure global options for all requests.
   static void configure({
     String? baseUrl,
     Map<String, String>? headers,
     List<dio.Interceptor>? interceptors,
+    bool? enableLoader,
+    bool? enableErrorOverlay,
+    bool? enableSuccessOverlay,
+    bool? enableLogger,
+    bool? enableErrorLogger,
+    bool? enableResponseLogger,
   }) {
     _baseUrl = baseUrl;
     _globalHeaders = headers;
     _globalInterceptors = interceptors;
+    if (enableLoader != null) {
+      _globalLoaderEnabled = enableLoader;
+    }
+    if (enableErrorOverlay != null) {
+      _globalErrorOverlayEnabled = enableErrorOverlay;
+    }
+    if (enableSuccessOverlay != null) {
+      _globalSuccessOverlayEnabled = enableSuccessOverlay;
+    }
+    // Handle logger configuration
+    if (enableLogger != null) {
+      // Legacy support: enableLogger enables both error and response logging
+      _errorLoggerEnabled = enableLogger;
+      _responseLoggerEnabled = enableLogger;
+    }
+    if (enableErrorLogger != null) {
+      _errorLoggerEnabled = enableErrorLogger;
+    }
+    if (enableResponseLogger != null) {
+      _responseLoggerEnabled = enableResponseLogger;
+    }
+    // Update logger state after all logger settings are applied
+    _updateLoggerEnabled();
   }
+
+  /// Update _loggerEnabled based on error/response logger states
+  /// Request logging is automatically enabled if any logger is enabled
+  static void _updateLoggerEnabled() {
+    _loggerEnabled = _errorLoggerEnabled || _responseLoggerEnabled;
+    // Note: We use print() directly for colored output, so no logging package configuration needed
+  }
+
+  /// Set global overlay settings
+  static void setOverlaySettings({
+    bool? enableLoader,
+    bool? enableErrorOverlay,
+    bool? enableSuccessOverlay,
+  }) {
+    if (enableLoader != null) {
+      _globalLoaderEnabled = enableLoader;
+    }
+    if (enableErrorOverlay != null) {
+      _globalErrorOverlayEnabled = enableErrorOverlay;
+    }
+    if (enableSuccessOverlay != null) {
+      _globalSuccessOverlayEnabled = enableSuccessOverlay;
+    }
+  }
+
+  /// Get current overlay settings
+  static Map<String, bool> getOverlaySettings() {
+    return {
+      'loader': _globalLoaderEnabled,
+      'errorOverlay': _globalErrorOverlayEnabled,
+      'successOverlay': _globalSuccessOverlayEnabled,
+      'logger': _loggerEnabled,
+      'errorLogger': _errorLoggerEnabled,
+      'responseLogger': _responseLoggerEnabled,
+    };
+  }
+
+  /// Enable or disable logger globally (legacy method - enables both error and response logging)
+  /// When enabled, all API requests, responses, and errors will be logged with colored output
+  static void setLoggerEnabled(bool enabled) {
+    _errorLoggerEnabled = enabled;
+    _responseLoggerEnabled = enabled;
+    _updateLoggerEnabled();
+  }
+
+  /// Enable or disable error logger
+  /// When enabled, errors will be logged with colored output
+  static void setErrorLoggerEnabled(bool enabled) {
+    _errorLoggerEnabled = enabled;
+    _updateLoggerEnabled();
+  }
+
+  /// Enable or disable response logger
+  /// When enabled, all API responses (successful and errors) will be logged with colored output
+  static void setResponseLoggerEnabled(bool enabled) {
+    _responseLoggerEnabled = enabled;
+    _updateLoggerEnabled();
+  }
+
+  /// Check if logger is enabled (any type)
+  static bool isLoggerEnabled() {
+    return _loggerEnabled;
+  }
+
+  /// Check if error logger is enabled
+  static bool isErrorLoggerEnabled() {
+    return _errorLoggerEnabled;
+  }
+
+  /// Check if response logger is enabled
+  static bool isResponseLoggerEnabled() {
+    return _responseLoggerEnabled;
+  }
+
+  /// Get the logger instance for custom logging
+  static Logger get logger => _logger;
 
   /// Reset global configuration.
   static void resetConfig() {
     _baseUrl = null;
     _globalHeaders = null;
     _globalInterceptors = null;
+    _globalLoaderEnabled = true;
+    _globalErrorOverlayEnabled = true;
+    _globalSuccessOverlayEnabled = true;
+    _loggerEnabled = false;
+    _errorLoggerEnabled = false;
+    _responseLoggerEnabled = false;
   }
 
   // ignore: non_constant_identifier_names
@@ -255,6 +380,228 @@ class OneRequest {
   /// [innderData] is a boolean value indicating whether to return the inner data of the response or not.
   ///
   /// Returns a [Future] of [Either] of dynamic and [CustomExceptionHandlers].
+  // ANSI color codes for terminal output
+  static const String _reset = '\x1B[0m';
+  static const String _bold = '\x1B[1m';
+  static const String _red = '\x1B[31m';
+  static const String _green = '\x1B[32m';
+  static const String _yellow = '\x1B[33m';
+  static const String _blue = '\x1B[34m';
+  static const String _magenta = '\x1B[35m';
+  static const String _cyan = '\x1B[36m';
+  static const String _gray = '\x1B[90m';
+  static const String _white = '\x1B[37m';
+
+  // Helper to mask sensitive headers for logging
+  static Map<String, String> _maskSensitiveHeaders(
+      Map<String, String> headers) {
+    final masked = Map<String, String>.from(headers);
+    if (masked.containsKey('Authorization')) {
+      final auth = masked['Authorization']!;
+      if (auth.length > 20) {
+        masked['Authorization'] = '${auth.substring(0, 20)}...';
+      }
+    }
+    return masked;
+  }
+
+  // Helper to format request/response for logging with colors
+  static void _logRequest({
+    required String method,
+    required String url,
+    Map<String, String>? headers,
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? body,
+    bool formData = false,
+  }) {
+    // Auto-enable request logging if any logger is enabled
+    if (!_loggerEnabled) return;
+
+    final buffer = StringBuffer();
+    buffer.writeln(
+        '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
+    buffer.writeln(
+        '$_bold$_blue📤 ONE_REQUEST:$_reset $_bold$_white$method$_reset $_cyan$url$_reset');
+    buffer.writeln(
+        '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
+
+    if (queryParameters != null && queryParameters.isNotEmpty) {
+      buffer.writeln('$_yellow📋 Query Parameters:$_reset');
+      queryParameters.forEach((key, value) {
+        buffer.writeln('$_gray   $key:$_reset $_white$value$_reset');
+      });
+    }
+
+    if (headers != null && headers.isNotEmpty) {
+      final maskedHeaders = _maskSensitiveHeaders(headers);
+      buffer.writeln('$_yellow📨 Headers:$_reset');
+      maskedHeaders.forEach((key, value) {
+        buffer.writeln('$_gray   $key:$_reset $_white$value$_reset');
+      });
+    }
+
+    if (body != null && body.isNotEmpty) {
+      buffer.writeln('$_yellow📦 Request Body:$_reset');
+      if (formData) {
+        buffer.writeln('$_gray   [FormData] ${body.length} fields$_reset');
+        // Don't print form data fields as they might contain large base64 images
+      } else {
+        final bodyStr = body.toString();
+        if (bodyStr.length > 500) {
+          buffer.writeln(
+              '$_gray   ${bodyStr.substring(0, 500)}... (truncated)$_reset');
+        } else {
+          buffer.writeln('$_gray   $bodyStr$_reset');
+        }
+      }
+    }
+    buffer.writeln(
+        '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
+
+    // Print directly to preserve colors without logging package formatting
+    print(buffer.toString());
+  }
+
+  static void _logResponse({
+    required int? statusCode,
+    required String? statusMessage,
+    dynamic data,
+    required String url,
+    required Duration duration,
+  }) {
+    // Only log if response logger is enabled AND it's not an error (errors are handled by error logger)
+    // Response logger shows successful responses (2xx, 3xx) only
+    if (!_responseLoggerEnabled) return;
+
+    // Skip error responses (4xx, 5xx) - they are handled by error logger
+    if (statusCode != null && statusCode >= 400) {
+      return; // Don't log errors here, error logger will handle them
+    }
+
+    // Determine color based on status code
+    String statusColor = _green; // Success (2xx)
+    String statusIcon = '✅';
+    if (statusCode != null) {
+      if (statusCode >= 300 && statusCode < 400) {
+        statusColor = _yellow; // Redirect (3xx)
+        statusIcon = '⚠️';
+      }
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln(
+        '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
+    buffer.writeln(
+        '$_bold$_green📥 ONE_REQUEST RESPONSE:$_reset $_cyan$url$_reset');
+    buffer.writeln(
+        '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
+    buffer.writeln(
+        '$_magenta⏱️  Duration:$_reset $_white${duration.inMilliseconds}ms$_reset');
+    buffer.writeln(
+        '$_magenta📊 Status:$_reset $statusColor$statusIcon $statusCode${statusMessage != null ? ' $statusMessage' : ''}$_reset');
+
+    if (data != null) {
+      buffer.writeln('$_yellow📦 Response Data:$_reset');
+
+      // Format data nicely based on type
+      String formattedData;
+      try {
+        if (data is Map || data is List) {
+          // Use jsonEncode for proper JSON formatting
+          const encoder = JsonEncoder.withIndent('  ');
+          formattedData = encoder.convert(data);
+        } else if (data is String) {
+          // Try to parse as JSON for formatting, fallback to string
+          try {
+            final decoded = jsonDecode(data);
+            const encoder = JsonEncoder.withIndent('  ');
+            formattedData = encoder.convert(decoded);
+          } catch (_) {
+            formattedData = data;
+          }
+        } else {
+          formattedData = data.toString();
+        }
+      } catch (e) {
+        // Fallback to toString if formatting fails
+        formattedData = data.toString();
+      }
+
+      // Print header first
+      print(buffer.toString());
+      buffer.clear();
+
+      // Split into lines and print each line separately to avoid buffer issues
+      final lines = formattedData.split('\n');
+      for (final line in lines) {
+        // Print each line immediately to avoid truncation
+        print('$_gray   $line$_reset');
+      }
+
+      // Print footer
+      print(
+          '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
+    } else {
+      buffer.writeln('$_gray   (empty response)$_reset');
+      buffer.writeln(
+          '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
+      // Print directly to preserve colors without logging package formatting
+      print(buffer.toString());
+    }
+  }
+
+  static void _logError({
+    required String error,
+    required String url,
+    int? statusCode,
+  }) {
+    // Only log if error logger is enabled
+    if (!_errorLoggerEnabled) return;
+
+    final buffer = StringBuffer();
+    buffer.writeln(
+        '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
+    buffer.writeln('$_bold$_red❌ ONE_REQUEST ERROR:$_reset $_cyan$url$_reset');
+    buffer.writeln(
+        '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
+    if (statusCode != null) {
+      buffer.writeln('$_yellow📊 Status Code:$_reset $_red$statusCode$_reset');
+    }
+    buffer.writeln('$_red💥 Error:$_reset $_white$error$_reset');
+    buffer.writeln(
+        '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
+
+    // Print directly to preserve colors without logging package formatting
+    print(buffer.toString());
+  }
+
+  static void _logWarning({
+    required String message,
+    required String url,
+  }) {
+    // Warnings are part of error logging
+    if (!_errorLoggerEnabled) return;
+
+    final formattedMessage =
+        '$_yellow⚠️  WARNING:$_reset $_cyan$url$_reset\n$_yellow   $message$_reset';
+    // Print directly to preserve colors
+    print(formattedMessage);
+  }
+
+  static void _logInfo({
+    required String message,
+    String? url,
+  }) {
+    // Info messages are part of response logging
+    if (!_responseLoggerEnabled) return;
+
+    final formattedMessage = url != null
+        ? '$_blueℹ️  INFO:$_reset $_cyan$url$_reset\n$_blue   $message$_reset'
+        : '$_blueℹ️  INFO:$_reset\n$_blue   $message$_reset';
+    // Print directly to preserve colors
+    print(formattedMessage);
+  }
+
   Future<Either<T, String>> _httpequest<T extends Object?>({
     Map<String, dynamic>? body,
     Map<String, dynamic>? queryParameters,
@@ -276,14 +623,45 @@ class OneRequest {
     Duration retryDelay = const Duration(seconds: 1),
     bool useCache = false,
   }) async {
+    final startTime = DateTime.now();
     final r = dio.Dio();
+
     // Apply global config
     if (_baseUrl != null) {
       url = _baseUrl! + url;
     }
+
+    // Merge headers: global headers first, then per-request headers (per-request overrides global)
+    Map<String, String> finalHeaders = {};
     if (_globalHeaders != null) {
-      header = {...?_globalHeaders, ...?header};
+      finalHeaders.addAll(_globalHeaders!);
     }
+    if (header != null) {
+      finalHeaders.addAll(header); // Per-request headers override global
+    }
+
+    // Set default headers if none provided
+    if (finalHeaders.isEmpty) {
+      finalHeaders = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+    } else {
+      // Ensure Content-Type and Accept are set if not provided
+      finalHeaders.putIfAbsent('Content-Type', () => 'application/json');
+      finalHeaders.putIfAbsent('Accept', () => 'application/json');
+    }
+
+    // Log request
+    _logRequest(
+      method: method.value,
+      url: url,
+      headers: finalHeaders,
+      queryParameters: queryParameters,
+      body: body,
+      formData: formData,
+    );
+
     // Add interceptors
     final allInterceptors = <dio.Interceptor>[
       ...?_globalInterceptors,
@@ -292,14 +670,12 @@ class OneRequest {
     if (allInterceptors.isNotEmpty) {
       r.interceptors.addAll(allInterceptors);
     }
-    if (loader) {
+
+    // Apply global loader setting (only show if both global and per-request allow it)
+    final shouldShowLoader = loader && _globalLoaderEnabled;
+    if (shouldShowLoader) {
       LoadingStuff.loading();
     }
-    var headers = header ??
-        {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
 
     int attempt = 0;
     while (true) {
@@ -315,7 +691,7 @@ class OneRequest {
                 responseType: responsetype.value,
                 followRedirects: maxRedirects != 1 ? true : false,
                 method: method.value,
-                headers: headers,
+                headers: finalHeaders,
                 maxRedirects: maxRedirects,
                 validateStatus: (status) => true,
               ),
@@ -325,11 +701,18 @@ class OneRequest {
           Duration(seconds: timeout),
           onTimeout: () {
             r.close();
+            _logError(
+              error: 'Request timeout after ${timeout}s',
+              url: url,
+              statusCode: null,
+            );
             throw ApiNotRespondingException('Request timeout', url);
           },
         );
 
-        if (loader) {
+        final duration = DateTime.now().difference(startTime);
+
+        if (shouldShowLoader) {
           EasyLoading.dismiss();
         }
 
@@ -347,6 +730,17 @@ class OneRequest {
         // Success responses
         if ([200, 201, 202, 203, 204].contains(response.statusCode)) {
           final responseJson = response.data;
+
+          // Log successful response - pass all data types
+          _logResponse(
+            statusCode: response.statusCode,
+            statusMessage: response.statusMessage,
+            data:
+                responseJson, // Pass the actual response data (can be Map, List, String, etc.)
+            url: url,
+            duration: duration,
+          );
+
           if (innderData) {
             try {
               if (responseJson is Map &&
@@ -358,6 +752,7 @@ class OneRequest {
                 return Left(responseJson['data'] as T);
               } else {
                 if (resultOverlay &&
+                    _globalSuccessOverlayEnabled &&
                     responseJson is Map &&
                     responseJson['message'] != null) {
                   EasyLoading.showSuccess(responseJson['message'].toString());
@@ -367,13 +762,18 @@ class OneRequest {
             } catch (e) {
               final msg =
                   CustomExceptionHandlers(error: e).getExceptionString();
-              if (resultOverlay) {
+              _logError(
+                error: msg,
+                url: url,
+                statusCode: response.statusCode,
+              );
+              if (resultOverlay && _globalErrorOverlayEnabled) {
                 EasyLoading.showError(msg);
               }
               return Right(msg);
             }
           }
-          if (resultOverlay) {
+          if (resultOverlay && _globalSuccessOverlayEnabled) {
             EasyLoading.showSuccess(
                 response.statusMessage?.toString() ?? 'Success');
           }
@@ -382,26 +782,100 @@ class OneRequest {
           }
           return Left(responseJson as T);
         } else {
-          // Error responses
+          // Handle non-2xx responses (3xx redirects, 4xx/5xx errors)
           String errorMsg;
-          if (_customErrorHandler != null &&
+
+          // Handle redirects (3xx status codes) - these are logged as responses, not errors
+          if (response.statusCode != null &&
+              response.statusCode! >= 300 &&
+              response.statusCode! < 400) {
+            // Log redirect as a response (3xx are part of response logging)
+            _logResponse(
+              statusCode: response.statusCode,
+              statusMessage: response.statusMessage,
+              data: response.data, // Pass the actual response data
+              url: url,
+              duration: duration,
+            );
+
+            final location = response.headers.value('location') ??
+                response.headers.value('Location');
+            if (location != null) {
+              _logInfo(
+                  message: 'Redirect detected: $url → $location', url: url);
+              // Try to follow redirect by making a new request
+              final maxRedirectsValue = maxRedirects ?? 1;
+              if (maxRedirectsValue > 1 && attempt < maxRedirectsValue) {
+                _logInfo(
+                    message: 'Following redirect to: $location', url: location);
+                // Update URL and retry
+                url = location.startsWith('http')
+                    ? location
+                    : (url.split('/').sublist(0, 3).join('/') + location);
+                attempt++;
+                await Future.delayed(const Duration(milliseconds: 100));
+                continue;
+              } else {
+                errorMsg =
+                    'Redirect not followed. Please check URL: $url (Status: ${response.statusCode})';
+              }
+            } else {
+              errorMsg =
+                  'Redirect ${response.statusCode} but no location header found';
+            }
+          } else if (_customErrorHandler != null &&
               response.data is Map<String, dynamic>) {
-            errorMsg = _customErrorHandler!(
+            final customMsg = _customErrorHandler!(
                 response.data as Map<String, dynamic>,
                 response.statusCode,
                 url);
+            // Ensure custom error handler doesn't return empty string
+            errorMsg = (customMsg.trim().isNotEmpty)
+                ? customMsg.trim()
+                : 'Request failed with status ${response.statusCode}';
           } else {
-            errorMsg = _extractErrorMessage(response.data) ??
-                response.statusMessage?.toString() ??
-                'Unknown error occurred.';
+            final extractedMsg = _extractErrorMessage(response.data);
+            if (extractedMsg != null && extractedMsg.trim().isNotEmpty) {
+              errorMsg = extractedMsg.trim();
+            } else if (response.statusMessage != null &&
+                response.statusMessage!.trim().isNotEmpty) {
+              errorMsg = response.statusMessage!.trim();
+            } else {
+              // Fallback error message based on status code
+              if (response.statusCode == 401) {
+                errorMsg = 'Unauthorized. Please login again.';
+              } else if (response.statusCode == 403) {
+                errorMsg = 'Access forbidden. You do not have permission.';
+              } else if (response.statusCode == 404) {
+                errorMsg = 'Resource not found.';
+              } else if (response.statusCode == 500) {
+                errorMsg = 'Server error. Please try again later.';
+              } else {
+                errorMsg = 'Request failed with status ${response.statusCode}';
+              }
+            }
           }
-          if (resultOverlay) {
+
+          // Final safety check - ensure error message is never empty
+          if (errorMsg.trim().isEmpty) {
+            errorMsg =
+                'Unknown error occurred (Status: ${response.statusCode ?? 'unknown'})';
+          }
+
+          // Log error response
+          _logError(
+            error: errorMsg,
+            url: url,
+            statusCode: response.statusCode,
+          );
+
+          if (resultOverlay && _globalErrorOverlayEnabled) {
             EasyLoading.showError(errorMsg);
           }
           return Right(errorMsg);
         }
       } on dio.DioException catch (e) {
-        if (loader) EasyLoading.dismiss();
+        if (shouldShowLoader) EasyLoading.dismiss();
         String msg;
         bool shouldRetry = false;
         if (e.type == dio.DioExceptionType.connectionTimeout ||
@@ -411,63 +885,136 @@ class OneRequest {
                   error: ApiNotRespondingException('Request timeout', url))
               .getExceptionString();
           shouldRetry = attempt < maxRetries;
+          _logError(
+            error: msg,
+            url: url,
+            statusCode: null,
+          );
         } else if (e.type == dio.DioExceptionType.badResponse) {
           if (_customErrorHandler != null &&
               e.response?.data is Map<String, dynamic>) {
-            msg = _customErrorHandler!(e.response!.data as Map<String, dynamic>,
-                e.response?.statusCode, url);
+            final customMsg = _customErrorHandler!(
+                e.response!.data as Map<String, dynamic>,
+                e.response?.statusCode,
+                url);
+            // Ensure custom error handler doesn't return empty string
+            msg = (customMsg.trim().isNotEmpty)
+                ? customMsg.trim()
+                : 'Request failed (Status: ${e.response?.statusCode ?? 'unknown'})';
           } else {
-            msg = _extractErrorMessage(e.response?.data) ??
-                CustomExceptionHandlers(
-                        error: BadRequestException(e.message ?? '', url))
-                    .getExceptionString();
+            final extractedMsg = _extractErrorMessage(e.response?.data);
+            if (extractedMsg != null && extractedMsg.trim().isNotEmpty) {
+              msg = extractedMsg.trim();
+            } else {
+              final defaultMsg = (e.message?.trim().isNotEmpty == true)
+                  ? e.message!.trim()
+                  : 'Bad request';
+              msg = CustomExceptionHandlers(
+                      error: BadRequestException(defaultMsg, url))
+                  .getExceptionString();
+            }
           }
+          // Ensure error message is not empty
+          if (msg.trim().isEmpty) {
+            msg =
+                'Request failed (Status: ${e.response?.statusCode ?? 'unknown'})';
+          }
+          _logError(
+            error: msg,
+            url: url,
+            statusCode: e.response?.statusCode,
+          );
         } else if (e.type == dio.DioExceptionType.cancel) {
           msg = 'Request was cancelled.';
+          _logError(
+            error: msg,
+            url: url,
+            statusCode: null,
+          );
         } else {
           msg = CustomExceptionHandlers(
-                  error: FetchDataException(e.message ?? '', url))
+                  error: FetchDataException(e.message ?? 'Network error', url))
               .getExceptionString();
+          // Ensure error message is not empty
+          if (msg.isEmpty) {
+            msg = 'Unable to connect to server. Please check your connection.';
+          }
+          _logError(
+            error: msg,
+            url: url,
+            statusCode: null,
+          );
         }
         if (_customLogger != null) {
           _customLogger!(e, e.stackTrace);
         }
         if (shouldRetry) {
           attempt++;
+          _logWarning(
+              message: 'Retrying request (attempt $attempt/$maxRetries)...',
+              url: url);
           await Future.delayed(retryDelay);
           continue;
         }
-        if (resultOverlay) {
+        if (resultOverlay && _globalErrorOverlayEnabled) {
           EasyLoading.showError(msg);
         }
         return Right(msg);
       } on SocketException catch (e) {
-        if (loader) EasyLoading.dismiss();
-        final msg = CustomExceptionHandlers(error: e).getExceptionString();
+        if (shouldShowLoader) EasyLoading.dismiss();
+        var msg = CustomExceptionHandlers(error: e).getExceptionString();
+        // Ensure error message is not empty
+        if (msg.isEmpty) {
+          msg =
+              'Network error: Unable to connect to server. Please check your internet connection.';
+        }
+        _logError(
+          error: msg,
+          url: url,
+          statusCode: null,
+        );
         if (_customLogger != null) {
           _customLogger!(e, null);
         }
-        if (resultOverlay) {
+        if (resultOverlay && _globalErrorOverlayEnabled) {
           EasyLoading.showError(msg);
         }
         return Right(msg);
       } on AppException catch (e) {
-        if (loader) EasyLoading.dismiss();
-        final msg = CustomExceptionHandlers(error: e).getExceptionString();
+        if (shouldShowLoader) EasyLoading.dismiss();
+        var msg = CustomExceptionHandlers(error: e).getExceptionString();
+        // Ensure error message is not empty
+        if (msg.isEmpty) {
+          msg = 'An error occurred while processing your request.';
+        }
+        _logError(
+          error: msg,
+          url: url,
+          statusCode: null,
+        );
         if (_customLogger != null) {
           _customLogger!(e, null);
         }
-        if (resultOverlay) {
+        if (resultOverlay && _globalErrorOverlayEnabled) {
           EasyLoading.showError(msg);
         }
         return Right(msg);
       } catch (e, stack) {
-        if (loader) EasyLoading.dismiss();
-        final msg = CustomExceptionHandlers(error: e).getExceptionString();
+        if (shouldShowLoader) EasyLoading.dismiss();
+        var msg = CustomExceptionHandlers(error: e).getExceptionString();
+        // Ensure error message is not empty
+        if (msg.isEmpty) {
+          msg = 'An unexpected error occurred: ${e.toString()}';
+        }
+        _logError(
+          error: msg,
+          url: url,
+          statusCode: null,
+        );
         if (_customLogger != null) {
           _customLogger!(e, stack);
         }
-        if (resultOverlay) {
+        if (resultOverlay && _globalErrorOverlayEnabled) {
           EasyLoading.showError(msg);
         }
         return Right(msg);
@@ -533,14 +1080,41 @@ class OneRequest {
   // Helper to extract error message from various response formats
   String? _extractErrorMessage(dynamic data) {
     if (data == null) return null;
-    if (data is String) return data;
+    if (data is String) {
+      final trimmed = data.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
     if (data is Map) {
-      if (data['message'] != null) return data['message'].toString();
-      if (data['error'] != null) return data['error'].toString();
-      if (data['errors'] != null) return data['errors'].toString();
+      // Try different common error message fields
+      if (data['message'] != null) {
+        final msg = data['message'].toString().trim();
+        if (msg.isNotEmpty) return msg;
+      }
+      if (data['error'] != null) {
+        final err = data['error'].toString().trim();
+        if (err.isNotEmpty) return err;
+      }
+      if (data['errors'] != null) {
+        final errors = data['errors'];
+        if (errors is List && errors.isNotEmpty) {
+          final first = errors.first.toString().trim();
+          if (first.isNotEmpty) return first;
+        } else if (errors is Map && errors.isNotEmpty) {
+          final first = errors.values.first.toString().trim();
+          if (first.isNotEmpty) return first;
+        } else {
+          final errStr = errors.toString().trim();
+          if (errStr.isNotEmpty) return errStr;
+        }
+      }
+      if (data['detail'] != null) {
+        final detail = data['detail'].toString().trim();
+        if (detail.isNotEmpty) return detail;
+      }
     }
     if (data is List && data.isNotEmpty) {
-      return data.first.toString();
+      final first = data.first.toString().trim();
+      return first.isEmpty ? null : first;
     }
     return null;
   }

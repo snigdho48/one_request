@@ -7,11 +7,9 @@ import 'dart:async';
 
 void main() {
   group('OneRequest', () {
-    late OneRequest request;
     late List<String> logs;
 
     setUp(() {
-      request = OneRequest();
       logs = [];
       OneRequest.resetConfig();
       OneRequest.resetErrorHandler();
@@ -36,8 +34,6 @@ void main() {
           loggedMsg = error.toString();
         },
       );
-      // Simulate error
-      final errorBody = {'custom_message': 'fail'};
       // We can't access private fields, so just check the handler and logger are set and callable
       expect(handledMsg, isNull);
       expect(loggedMsg, isNull);
@@ -64,7 +60,7 @@ void main() {
 
       int maxRetries = 2;
       int attempt = 0;
-      Either<Map<String, dynamic>, String>? result;
+      late Either<Map<String, dynamic>, String> result;
       while (true) {
         try {
           result = await fakeRequest();
@@ -81,7 +77,7 @@ void main() {
         }
       }
       expect(attempt, 2);
-      expect(result!.isLeft, true);
+      expect(result.isLeft, true);
       expect(result.left['ok'], true);
     });
 
@@ -89,6 +85,70 @@ void main() {
       OneRequest.configure(headers: {'a': 'b'});
       // We can't access private fields, so just check that configure does not throw
       expect(() => OneRequest.configure(headers: {'x': 'y'}), returnsNormally);
+    });
+
+    test('logger configuration with separate error and response loggers', () {
+      // Test separate logger configuration
+      OneRequest.setErrorLoggerEnabled(true);
+      OneRequest.setResponseLoggerEnabled(false);
+      expect(OneRequest.isErrorLoggerEnabled(), true);
+      expect(OneRequest.isResponseLoggerEnabled(), false);
+      expect(OneRequest.isLoggerEnabled(),
+          true); // Should be true if any logger is enabled
+
+      OneRequest.setErrorLoggerEnabled(false);
+      OneRequest.setResponseLoggerEnabled(true);
+      expect(OneRequest.isErrorLoggerEnabled(), false);
+      expect(OneRequest.isResponseLoggerEnabled(), true);
+      expect(OneRequest.isLoggerEnabled(), true);
+
+      // Test legacy method (enables both)
+      OneRequest.setLoggerEnabled(true);
+      expect(OneRequest.isErrorLoggerEnabled(), true);
+      expect(OneRequest.isResponseLoggerEnabled(), true);
+      expect(OneRequest.isLoggerEnabled(), true);
+
+      OneRequest.setLoggerEnabled(false);
+      expect(OneRequest.isErrorLoggerEnabled(), false);
+      expect(OneRequest.isResponseLoggerEnabled(), false);
+      expect(OneRequest.isLoggerEnabled(), false);
+    });
+
+    test('configure with enableErrorLogger and enableResponseLogger', () {
+      OneRequest.configure(
+        enableErrorLogger: true,
+        enableResponseLogger: false,
+      );
+      expect(OneRequest.isErrorLoggerEnabled(), true);
+      expect(OneRequest.isResponseLoggerEnabled(), false);
+
+      OneRequest.configure(
+        enableErrorLogger: false,
+        enableResponseLogger: true,
+      );
+      expect(OneRequest.isErrorLoggerEnabled(), false);
+      expect(OneRequest.isResponseLoggerEnabled(), true);
+
+      // Test legacy enableLogger (should enable both)
+      OneRequest.configure(enableLogger: true);
+      expect(OneRequest.isErrorLoggerEnabled(), true);
+      expect(OneRequest.isResponseLoggerEnabled(), true);
+    });
+
+    test('getOverlaySettings includes logger states', () {
+      OneRequest.setErrorLoggerEnabled(true);
+      OneRequest.setResponseLoggerEnabled(true);
+      final settings = OneRequest.getOverlaySettings();
+      expect(settings['errorLogger'], true);
+      expect(settings['responseLogger'], true);
+      expect(settings['logger'], true);
+
+      OneRequest.setErrorLoggerEnabled(false);
+      OneRequest.setResponseLoggerEnabled(false);
+      final settings2 = OneRequest.getOverlaySettings();
+      expect(settings2['errorLogger'], false);
+      expect(settings2['responseLogger'], false);
+      expect(settings2['logger'], false);
     });
 
     testWidgets('custom loading and error widget logic',
