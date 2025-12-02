@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import 'dart:math' as math show sin, pi;
 
@@ -281,7 +282,8 @@ class ScaleYWidget extends AnimatedWidget {
   @override
   Widget build(BuildContext context) {
     return Transform(
-        transform: Matrix4.identity()..scale(1.0, scale.value, 1.0),
+        transform: Matrix4.identity()
+          ..scaleByVector3(Vector3(1.0, scale.value, 1.0)),
         alignment: alignment,
         child: child);
   }

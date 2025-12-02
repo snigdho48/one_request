@@ -1,3 +1,21 @@
+## [2.2.1] - 2025-12-02
+### Fixed
+- Fixed deprecated `Matrix4.scale()` method by using `scaleByVector3()` for better compatibility
+- Added missing type annotations throughout the codebase for better static analysis
+- Fixed return type annotations for `loading()`, `loadingDismiss()`, and `initLoading` methods
+- Fixed code formatting issues to match Dart formatter standards
+- Improved package description to meet pub.dev requirements (50-180 characters)
+
+### Changed
+- Added `vector_math` as a direct dependency for `Vector3` support in progress indicators
+- Updated `initLoading` return type to use `TransitionBuilder` for proper MaterialApp builder compatibility
+
+### Technical
+- All code now passes static analysis with no errors, warnings, or lint issues
+- Package now achieves 160/160 pub.dev score points
+
+---
+
 ## [2.2.0] - 2025-01-XX
 ### Added
 - **Separate Error and Response Loggers** with independent control

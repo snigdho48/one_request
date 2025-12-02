@@ -165,9 +165,16 @@ class OneRequest {
 
   // ignore: non_constant_identifier_names
   // initializer
-  static get dismissLoading => LoadingStuff.loadingDismiss();
-  static get initLoading => LoadingStuff.initLoading;
-  static get loading => LoadingStuff.loading;
+  static Future<void>? get dismissLoading => LoadingStuff.loadingDismiss();
+  static TransitionBuilder get initLoading => LoadingStuff.initLoading;
+
+  /// Returns the loading function
+  static Future<void>? Function({
+    String? status,
+    Color? color,
+    Widget? indicator,
+    BuildContext? context,
+  }) get loading => LoadingStuff.loading;
   // loading widget
   /// Displays a loading widget with an optional status message, color, and indicator widget.
   ///
@@ -215,6 +222,13 @@ class OneRequest {
     Widget? success,
     Widget? error,
     Widget? info,
+    double? radius,
+    double? fontSize,
+    double? progressWidth,
+    double? indicatorSize,
+    EdgeInsetsGeometry? contentPadding,
+    EasyLoadingMaskType? maskType,
+    Color? maskColor,
   }) =>
       LoadingStuff.configLoad(
         indicator: indicator,
@@ -225,6 +239,13 @@ class OneRequest {
         success: success,
         error: error,
         info: info,
+        radius: radius,
+        fontSize: fontSize,
+        progressWidth: progressWidth,
+        indicatorSize: indicatorSize,
+        contentPadding: contentPadding,
+        maskType: maskType,
+        maskColor: maskColor,
       );
 
   // filefromByte function
@@ -395,7 +416,7 @@ class OneRequest {
   // Helper to mask sensitive headers for logging
   static Map<String, String> _maskSensitiveHeaders(
       Map<String, String> headers) {
-    final masked = Map<String, String>.from(headers);
+    final Map<String, String> masked = Map<String, String>.from(headers);
     if (masked.containsKey('Authorization')) {
       final auth = masked['Authorization']!;
       if (auth.length > 20) {
@@ -417,7 +438,7 @@ class OneRequest {
     // Auto-enable request logging if any logger is enabled
     if (!_loggerEnabled) return;
 
-    final buffer = StringBuffer();
+    final StringBuffer buffer = StringBuffer();
     buffer.writeln(
         '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
     buffer.writeln(
@@ -446,7 +467,7 @@ class OneRequest {
         buffer.writeln('$_gray   [FormData] ${body.length} fields$_reset');
         // Don't print form data fields as they might contain large base64 images
       } else {
-        final bodyStr = body.toString();
+        final String bodyStr = body.toString();
         if (bodyStr.length > 500) {
           buffer.writeln(
               '$_gray   ${bodyStr.substring(0, 500)}... (truncated)$_reset');
@@ -488,7 +509,7 @@ class OneRequest {
       }
     }
 
-    final buffer = StringBuffer();
+    final StringBuffer buffer = StringBuffer();
     buffer.writeln(
         '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
     buffer.writeln(
@@ -504,7 +525,7 @@ class OneRequest {
       buffer.writeln('$_yellow📦 Response Data:$_reset');
 
       // Format data nicely based on type
-      String formattedData;
+      String formattedData = '';
       try {
         if (data is Map || data is List) {
           // Use jsonEncode for proper JSON formatting
@@ -513,7 +534,7 @@ class OneRequest {
         } else if (data is String) {
           // Try to parse as JSON for formatting, fallback to string
           try {
-            final decoded = jsonDecode(data);
+            final dynamic decoded = jsonDecode(data);
             const encoder = JsonEncoder.withIndent('  ');
             formattedData = encoder.convert(decoded);
           } catch (_) {
@@ -532,7 +553,7 @@ class OneRequest {
       buffer.clear();
 
       // Split into lines and print each line separately to avoid buffer issues
-      final lines = formattedData.split('\n');
+      final List<String> lines = formattedData.split('\n');
       for (final line in lines) {
         // Print each line immediately to avoid truncation
         print('$_gray   $line$_reset');
@@ -558,7 +579,7 @@ class OneRequest {
     // Only log if error logger is enabled
     if (!_errorLoggerEnabled) return;
 
-    final buffer = StringBuffer();
+    final StringBuffer buffer = StringBuffer();
     buffer.writeln(
         '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
     buffer.writeln('$_bold$_red❌ ONE_REQUEST ERROR:$_reset $_cyan$url$_reset');
@@ -582,7 +603,7 @@ class OneRequest {
     // Warnings are part of error logging
     if (!_errorLoggerEnabled) return;
 
-    final formattedMessage =
+    final String formattedMessage =
         '$_yellow⚠️  WARNING:$_reset $_cyan$url$_reset\n$_yellow   $message$_reset';
     // Print directly to preserve colors
     print(formattedMessage);
@@ -595,7 +616,7 @@ class OneRequest {
     // Info messages are part of response logging
     if (!_responseLoggerEnabled) return;
 
-    final formattedMessage = url != null
+    final String formattedMessage = url != null
         ? '$_blueℹ️  INFO:$_reset $_cyan$url$_reset\n$_blue   $message$_reset'
         : '$_blueℹ️  INFO:$_reset\n$_blue   $message$_reset';
     // Print directly to preserve colors
@@ -680,7 +701,7 @@ class OneRequest {
     int attempt = 0;
     while (true) {
       try {
-        final response = await r
+        final dio.Response response = await r
             .request(
           url,
           data: formData && body != null ? dio.FormData.fromMap(body) : body,
@@ -717,19 +738,20 @@ class OneRequest {
         }
 
         // Only cache GET requests
-        final isGet = method == RequestType.GET;
-        final cacheKey = isGet ? _buildCacheKey(url, queryParameters) : null;
+        final bool isGet = method == RequestType.GET;
+        final String? cacheKey =
+            isGet ? _buildCacheKey(url, queryParameters) : null;
         if (useCache &&
             isGet &&
             cacheKey != null &&
             _cache.containsKey(cacheKey)) {
-          final cached = _cache[cacheKey];
+          final dynamic cached = _cache[cacheKey];
           return Left(cached as T);
         }
 
         // Success responses
         if ([200, 201, 202, 203, 204].contains(response.statusCode)) {
-          final responseJson = response.data;
+          final dynamic responseJson = response.data;
 
           // Log successful response - pass all data types
           _logResponse(
@@ -798,7 +820,7 @@ class OneRequest {
               duration: duration,
             );
 
-            final location = response.headers.value('location') ??
+            final String? location = response.headers.value('location') ??
                 response.headers.value('Location');
             if (location != null) {
               _logInfo(

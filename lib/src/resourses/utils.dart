@@ -39,14 +39,15 @@ class LoadingStuff {
   ///
   /// If [status] is provided, it will be displayed as the status message for the loading indicator.
   /// Otherwise, the default status message "loading" will be used.
-  static loading(
-      {String? status,
-      Color? color,
-      Widget? indicator,
-      BuildContext? context}) {
+  static Future<void>? loading({
+    String? status,
+    Color? color,
+    Widget? indicator,
+    BuildContext? context,
+  }) {
     if (customLoadingBuilder != null && context != null) {
       return EasyLoading.show(
-        status: status ?? 'loading',
+        status: null, // Hide status text - it's included in the custom widget
         indicator: customLoadingBuilder!(context, status),
       );
     } else if (indicator != null) {
@@ -62,7 +63,7 @@ class LoadingStuff {
   }
 
   /// Dismisses the loading indicator.
-  static loadingDismiss() {
+  static Future<void>? loadingDismiss() {
     return EasyLoading.dismiss();
   }
 
@@ -110,19 +111,30 @@ class LoadingStuff {
       Color? progressColor,
       Color? backgroundColor,
       Color? indicatorColor,
-      Color? textColor}) {
+      Color? textColor,
+      double? radius,
+      double? fontSize,
+      double? progressWidth,
+      double? indicatorSize,
+      EdgeInsetsGeometry? contentPadding,
+      EasyLoadingMaskType? maskType,
+      Color? maskColor}) {
     WidgetsFlutterBinding.ensureInitialized();
     EasyLoading.instance
       ..indicatorType = EasyLoadingIndicatorType.fadingCircle
       ..loadingStyle = EasyLoadingStyle.custom
-      ..maskType = EasyLoadingMaskType.black
-      ..indicatorSize = 45.0
-      ..radius = 10.0
+      ..maskType = maskType ?? EasyLoadingMaskType.black
+      ..indicatorSize = indicatorSize ?? 45.0
+      ..radius = radius ?? 10.0
       ..progressColor = progressColor ?? Colors.white
       ..backgroundColor = backgroundColor ?? Colors.black
       ..indicatorColor = indicatorColor ?? Colors.white
       ..textColor = textColor ?? Colors.white
-      ..maskColor = Colors.blue.shade500
+      ..maskColor = maskColor ?? Colors.blue.shade500
+      ..fontSize = fontSize ?? 15.0
+      ..progressWidth = progressWidth ?? 2.0
+      ..contentPadding = (contentPadding as EdgeInsets?) ??
+          const EdgeInsets.symmetric(horizontal: 30.0, vertical: 19.0)
       ..userInteractions = false
       ..dismissOnTap = false
       ..indicatorWidget = indicator ??
@@ -151,5 +163,5 @@ class LoadingStuff {
   }
 
   /// Initializes the EasyLoading plugin.
-  static get initLoading => EasyLoading.init();
+  static TransitionBuilder get initLoading => EasyLoading.init();
 }
