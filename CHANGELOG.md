@@ -3,8 +3,6 @@
 - Fixed deprecated `Matrix4.scale()` method by using `scaleByVector3()` for better compatibility
 - Added missing type annotations throughout the codebase for better static analysis
 - Fixed return type annotations for `loading()`, `loadingDismiss()`, and `initLoading` methods
-- Fixed code formatting issues to match Dart formatter standards
-- Improved package description to meet pub.dev requirements (50-180 characters)
 
 ### Changed
 - Added `vector_math` as a direct dependency for `Vector3` support in progress indicators
