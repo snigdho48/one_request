@@ -60,6 +60,16 @@ void main() async {
     enableLoader: true, // Enable loading overlay globally
     enableErrorOverlay: false, // Disable error overlay globally
     enableSuccessOverlay: false, // Disable success overlay globally
+    // Improve reliability/error quality
+    sanitizeErrorMessages: true, // Remove noisy raw payloads
+    maxErrorMessageLength: 220, // Prevent huge error text
+    showStatusCodeInError: false, // Optional "[401] ..." prefix
+    // Global request defaults (can still override per request)
+    defaultTimeoutSeconds: 60,
+    defaultMaxRetries: 1,
+    defaultRetryDelay: const Duration(seconds: 1),
+    defaultMaxRedirects: 1,
+    defaultUseCache: false,
   );
   
   // Or use legacy method to enable both loggers
@@ -284,6 +294,24 @@ for (final result in batchResults) {
 ## Advanced Retry/Backoff
 - Use `maxRetries` and `retryDelay` in `send` or `batch` for automatic retries.
 - Set `exponentialBackoff: true` in `batch` for exponential retry delays.
+
+---
+
+## Better Error Messages
+
+Use global controls to avoid noisy raw server payloads and stack-like strings in UI:
+
+```dart
+OneRequest.configure(
+  sanitizeErrorMessages: true,
+  maxErrorMessageLength: 220,
+  showStatusCodeInError: false,
+);
+```
+
+- `sanitizeErrorMessages`: strips verbose prefixes and HTML-like server responses.
+- `maxErrorMessageLength`: prevents huge error text from overflowing UI.
+- `showStatusCodeInError`: when true, prefixes messages like `[403] Access forbidden`.
 
 ---
 

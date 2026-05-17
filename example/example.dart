@@ -47,7 +47,7 @@ void main() async {
   // Optional: Custom error handler and logger
   OneRequest.setErrorHandler(
     handler: (body, status, url) => body['message'] ?? 'Unknown error',
-    logger: (error, stack) => print('Logged error: $error'),
+    logger: (error, stack) => debugPrint('Logged error: $error'),
   );
 
   // Optional: Enable/disable loggers separately
@@ -58,10 +58,10 @@ void main() async {
 
   // Check logger status
   if (OneRequest.isLoggerEnabled()) {
-    print('✅ API logging is enabled');
-    print(
+    debugPrint('✅ API logging is enabled');
+    debugPrint(
         '   - Error Logger: ${OneRequest.isErrorLoggerEnabled() ? "✅" : "❌"}');
-    print(
+    debugPrint(
         '   - Response Logger: ${OneRequest.isResponseLoggerEnabled() ? "✅" : "❌"}');
   }
 
@@ -197,7 +197,7 @@ class _MyHomePageState extends State<MyHomePage> {
           .asMap()
           .entries
           .map((e) => 'Batch ${e.key + 1}: '
-              '${e.value.isLeft ? 'Success: ' + e.value.left.toString() : 'Error: ' + e.value.right.toString()}')
+              '${e.value.isLeft ? 'Success: ${e.value.left}' : 'Error: ${e.value.right}'}')
           .join('\n');
       _loading = false;
     });

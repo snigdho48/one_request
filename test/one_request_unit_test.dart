@@ -3,7 +3,6 @@ import 'package:one_request/one_request.dart';
 import 'package:either_dart/either.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart' as dio;
-import 'dart:async';
 
 void main() {
   group('OneRequest', () {

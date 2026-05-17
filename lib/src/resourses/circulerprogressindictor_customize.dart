@@ -168,7 +168,6 @@ class _SpinKitWaveState extends State<SpinKitWave>
       case SpinKitWaveType.end:
         return _endAnimationDelay(itemCount);
       case SpinKitWaveType.center:
-      default:
         return _centerAnimationDelay(itemCount);
     }
   }

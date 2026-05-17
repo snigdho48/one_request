@@ -67,7 +67,7 @@ class CustomExceptionHandlers {
   /// If the error is a [NotFoundException], the method returns the error message as a string.
   /// If the error is a [FetchDataException], the method returns the error message as a string.
   /// If the error is of any other type, the method returns 'Unknown error occured.'.
-  getExceptionString() {
+  String getExceptionString() {
     if (error is SocketException) {
       return 'No internet connection.';
     } else if (error is HttpException) {

@@ -32,6 +32,18 @@ class OneRequest {
   static bool _errorLoggerEnabled = false; // Error logger (disabled by default)
   static bool _responseLoggerEnabled =
       false; // Response logger (disabled by default)
+  static bool _sanitizeErrorMessages = true;
+  static int _maxErrorMessageLength = 220;
+  static bool _showStatusCodeInError = false;
+
+  // Global request defaults
+  static int _defaultTimeoutSeconds = 60;
+  static int _defaultMaxRetries = 0;
+  static Duration _defaultRetryDelay = const Duration(seconds: 1);
+  static int _defaultMaxRedirects = 1;
+  static bool _defaultUseCache = false;
+
+  static final dio.Dio _dio = dio.Dio();
   static final Logger _logger = Logger('OneRequest');
 
   /// Configure global options for all requests.
@@ -45,10 +57,24 @@ class OneRequest {
     bool? enableLogger,
     bool? enableErrorLogger,
     bool? enableResponseLogger,
+    bool? sanitizeErrorMessages,
+    int? maxErrorMessageLength,
+    bool? showStatusCodeInError,
+    int? defaultTimeoutSeconds,
+    int? defaultMaxRetries,
+    Duration? defaultRetryDelay,
+    int? defaultMaxRedirects,
+    bool? defaultUseCache,
   }) {
-    _baseUrl = baseUrl;
-    _globalHeaders = headers;
-    _globalInterceptors = interceptors;
+    if (baseUrl != null) {
+      _baseUrl = baseUrl;
+    }
+    if (headers != null) {
+      _globalHeaders = headers;
+    }
+    if (interceptors != null) {
+      _globalInterceptors = interceptors;
+    }
     if (enableLoader != null) {
       _globalLoaderEnabled = enableLoader;
     }
@@ -70,6 +96,30 @@ class OneRequest {
     if (enableResponseLogger != null) {
       _responseLoggerEnabled = enableResponseLogger;
     }
+    if (sanitizeErrorMessages != null) {
+      _sanitizeErrorMessages = sanitizeErrorMessages;
+    }
+    if (maxErrorMessageLength != null && maxErrorMessageLength > 0) {
+      _maxErrorMessageLength = maxErrorMessageLength;
+    }
+    if (showStatusCodeInError != null) {
+      _showStatusCodeInError = showStatusCodeInError;
+    }
+    if (defaultTimeoutSeconds != null && defaultTimeoutSeconds > 0) {
+      _defaultTimeoutSeconds = defaultTimeoutSeconds;
+    }
+    if (defaultMaxRetries != null && defaultMaxRetries >= 0) {
+      _defaultMaxRetries = defaultMaxRetries;
+    }
+    if (defaultRetryDelay != null) {
+      _defaultRetryDelay = defaultRetryDelay;
+    }
+    if (defaultMaxRedirects != null && defaultMaxRedirects > 0) {
+      _defaultMaxRedirects = defaultMaxRedirects;
+    }
+    if (defaultUseCache != null) {
+      _defaultUseCache = defaultUseCache;
+    }
     // Update logger state after all logger settings are applied
     _updateLoggerEnabled();
   }
@@ -78,7 +128,7 @@ class OneRequest {
   /// Request logging is automatically enabled if any logger is enabled
   static void _updateLoggerEnabled() {
     _loggerEnabled = _errorLoggerEnabled || _responseLoggerEnabled;
-    // Note: We use print() directly for colored output, so no logging package configuration needed
+    // We use debugPrint to avoid lint issues and preserve console readability.
   }
 
   /// Set global overlay settings
@@ -107,6 +157,9 @@ class OneRequest {
       'logger': _loggerEnabled,
       'errorLogger': _errorLoggerEnabled,
       'responseLogger': _responseLoggerEnabled,
+      'sanitizeErrorMessages': _sanitizeErrorMessages,
+      'showStatusCodeInError': _showStatusCodeInError,
+      'defaultUseCache': _defaultUseCache,
     };
   }
 
@@ -161,6 +214,14 @@ class OneRequest {
     _loggerEnabled = false;
     _errorLoggerEnabled = false;
     _responseLoggerEnabled = false;
+    _sanitizeErrorMessages = true;
+    _maxErrorMessageLength = 220;
+    _showStatusCodeInError = false;
+    _defaultTimeoutSeconds = 60;
+    _defaultMaxRetries = 0;
+    _defaultRetryDelay = const Duration(seconds: 1);
+    _defaultMaxRedirects = 1;
+    _defaultUseCache = false;
   }
 
   // ignore: non_constant_identifier_names
@@ -341,17 +402,17 @@ class OneRequest {
     required String url,
     required RequestType method,
     Map<String, String>? header,
-    int? maxRedirects = 1,
+    int? maxRedirects,
     ContentType contentType = ContentType.json,
-    int timeout = 60,
+    int? timeout,
     bool innderData = false,
     bool loader = true,
     bool resultOverlay = true,
     dio.CancelToken? cancelToken,
     List<dio.Interceptor>? interceptors,
-    int maxRetries = 0,
-    Duration retryDelay = const Duration(seconds: 1),
-    bool useCache = false,
+    int? maxRetries,
+    Duration? retryDelay,
+    bool? useCache,
   }) =>
       _httpequest<T>(
         body: body,
@@ -480,7 +541,7 @@ class OneRequest {
         '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
 
     // Print directly to preserve colors without logging package formatting
-    print(buffer.toString());
+    debugPrint(buffer.toString());
   }
 
   static void _logResponse({
@@ -549,25 +610,25 @@ class OneRequest {
       }
 
       // Print header first
-      print(buffer.toString());
+      debugPrint(buffer.toString());
       buffer.clear();
 
       // Split into lines and print each line separately to avoid buffer issues
       final List<String> lines = formattedData.split('\n');
       for (final line in lines) {
         // Print each line immediately to avoid truncation
-        print('$_gray   $line$_reset');
+        debugPrint('$_gray   $line$_reset');
       }
 
       // Print footer
-      print(
+      debugPrint(
           '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
     } else {
       buffer.writeln('$_gray   (empty response)$_reset');
       buffer.writeln(
           '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
       // Print directly to preserve colors without logging package formatting
-      print(buffer.toString());
+      debugPrint(buffer.toString());
     }
   }
 
@@ -593,7 +654,7 @@ class OneRequest {
         '$_cyan━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$_reset');
 
     // Print directly to preserve colors without logging package formatting
-    print(buffer.toString());
+    debugPrint(buffer.toString());
   }
 
   static void _logWarning({
@@ -606,7 +667,7 @@ class OneRequest {
     final String formattedMessage =
         '$_yellow⚠️  WARNING:$_reset $_cyan$url$_reset\n$_yellow   $message$_reset';
     // Print directly to preserve colors
-    print(formattedMessage);
+    debugPrint(formattedMessage);
   }
 
   static void _logInfo({
@@ -620,7 +681,32 @@ class OneRequest {
         ? '$_blueℹ️  INFO:$_reset $_cyan$url$_reset\n$_blue   $message$_reset'
         : '$_blueℹ️  INFO:$_reset\n$_blue   $message$_reset';
     // Print directly to preserve colors
-    print(formattedMessage);
+    debugPrint(formattedMessage);
+  }
+
+  String _finalizeErrorMessage(String message, {int? statusCode}) {
+    String sanitized = message.trim();
+    if (sanitized.isEmpty) {
+      sanitized = 'An unexpected error occurred.';
+    }
+
+    if (_sanitizeErrorMessages) {
+      sanitized = sanitized
+          .replaceFirst(RegExp(r'^DioException(?:\s*\[[^\]]+\])?:\s*'), '')
+          .replaceAll(RegExp(r'\s+'), ' ');
+      if (sanitized.contains('\n')) {
+        sanitized = sanitized.split('\n').first.trim();
+      }
+    }
+
+    if (sanitized.length > _maxErrorMessageLength) {
+      sanitized = '${sanitized.substring(0, _maxErrorMessageLength)}...';
+    }
+
+    if (_showStatusCodeInError && statusCode != null) {
+      sanitized = '[$statusCode] $sanitized';
+    }
+    return sanitized;
   }
 
   Future<Either<T, String>> _httpequest<T extends Object?>({
@@ -631,21 +717,26 @@ class OneRequest {
     required String url,
     required RequestType method,
     Map<String, String>? header,
-    int? maxRedirects = 1,
+    int? maxRedirects,
     ContentType contentType = ContentType.json,
-    int timeout = 60,
+    int? timeout,
     dio.Options? options,
     bool innderData = false,
     bool loader = true,
     bool resultOverlay = true,
     dio.CancelToken? cancelToken,
     List<dio.Interceptor>? interceptors,
-    int maxRetries = 0,
-    Duration retryDelay = const Duration(seconds: 1),
-    bool useCache = false,
+    int? maxRetries,
+    Duration? retryDelay,
+    bool? useCache,
   }) async {
     final startTime = DateTime.now();
-    final r = dio.Dio();
+    final r = _dio;
+    final int effectiveTimeout = timeout ?? _defaultTimeoutSeconds;
+    final int effectiveMaxRetries = maxRetries ?? _defaultMaxRetries;
+    final Duration effectiveRetryDelay = retryDelay ?? _defaultRetryDelay;
+    final int effectiveMaxRedirects = maxRedirects ?? _defaultMaxRedirects;
+    final bool effectiveUseCache = useCache ?? _defaultUseCache;
 
     // Apply global config
     if (_baseUrl != null) {
@@ -688,8 +779,22 @@ class OneRequest {
       ...?_globalInterceptors,
       ...?interceptors
     ];
+    final addedInterceptors = <dio.Interceptor>[];
     if (allInterceptors.isNotEmpty) {
-      r.interceptors.addAll(allInterceptors);
+      for (final interceptor in allInterceptors) {
+        if (!r.interceptors.contains(interceptor)) {
+          r.interceptors.add(interceptor);
+          addedInterceptors.add(interceptor);
+        }
+      }
+    }
+
+    final bool isGet = method == RequestType.GET;
+    final String? cacheKey =
+        isGet ? _buildCacheKey(url, queryParameters) : null;
+    if (effectiveUseCache && isGet && cacheKey != null && _cache.containsKey(cacheKey)) {
+      final dynamic cached = _cache[cacheKey];
+      return Left(cached as T);
     }
 
     // Apply global loader setting (only show if both global and per-request allow it)
@@ -699,8 +804,9 @@ class OneRequest {
     }
 
     int attempt = 0;
-    while (true) {
-      try {
+    try {
+      while (true) {
+        try {
         final dio.Response response = await r
             .request(
           url,
@@ -710,20 +816,19 @@ class OneRequest {
               dio.Options(
                 contentType: contentType.value,
                 responseType: responsetype.value,
-                followRedirects: maxRedirects != 1 ? true : false,
+                followRedirects: effectiveMaxRedirects != 1,
                 method: method.value,
                 headers: finalHeaders,
-                maxRedirects: maxRedirects,
+                maxRedirects: effectiveMaxRedirects,
                 validateStatus: (status) => true,
               ),
           cancelToken: cancelToken,
         )
             .timeout(
-          Duration(seconds: timeout),
+          Duration(seconds: effectiveTimeout),
           onTimeout: () {
-            r.close();
             _logError(
-              error: 'Request timeout after ${timeout}s',
+              error: 'Request timeout after ${effectiveTimeout}s',
               url: url,
               statusCode: null,
             );
@@ -735,18 +840,6 @@ class OneRequest {
 
         if (shouldShowLoader) {
           EasyLoading.dismiss();
-        }
-
-        // Only cache GET requests
-        final bool isGet = method == RequestType.GET;
-        final String? cacheKey =
-            isGet ? _buildCacheKey(url, queryParameters) : null;
-        if (useCache &&
-            isGet &&
-            cacheKey != null &&
-            _cache.containsKey(cacheKey)) {
-          final dynamic cached = _cache[cacheKey];
-          return Left(cached as T);
         }
 
         // Success responses
@@ -768,7 +861,7 @@ class OneRequest {
               if (responseJson is Map &&
                   responseJson['data'] != null &&
                   responseJson['data'] != '') {
-                if (useCache && isGet && cacheKey != null) {
+                if (effectiveUseCache && isGet && cacheKey != null) {
                   _cache[cacheKey] = responseJson['data'];
                 }
                 return Left(responseJson['data'] as T);
@@ -790,7 +883,7 @@ class OneRequest {
                 statusCode: response.statusCode,
               );
               if (resultOverlay && _globalErrorOverlayEnabled) {
-                EasyLoading.showError(msg);
+                LoadingStuff.showError(msg);
               }
               return Right(msg);
             }
@@ -799,7 +892,7 @@ class OneRequest {
             EasyLoading.showSuccess(
                 response.statusMessage?.toString() ?? 'Success');
           }
-          if (useCache && isGet && cacheKey != null) {
+          if (effectiveUseCache && isGet && cacheKey != null) {
             _cache[cacheKey] = responseJson;
           }
           return Left(responseJson as T);
@@ -826,14 +919,11 @@ class OneRequest {
               _logInfo(
                   message: 'Redirect detected: $url → $location', url: url);
               // Try to follow redirect by making a new request
-              final maxRedirectsValue = maxRedirects ?? 1;
-              if (maxRedirectsValue > 1 && attempt < maxRedirectsValue) {
+              if (effectiveMaxRedirects > 1 && attempt < effectiveMaxRedirects) {
                 _logInfo(
                     message: 'Following redirect to: $location', url: location);
                 // Update URL and retry
-                url = location.startsWith('http')
-                    ? location
-                    : (url.split('/').sublist(0, 3).join('/') + location);
+                url = Uri.parse(url).resolve(location).toString();
                 attempt++;
                 await Future.delayed(const Duration(milliseconds: 100));
                 continue;
@@ -878,11 +968,8 @@ class OneRequest {
             }
           }
 
-          // Final safety check - ensure error message is never empty
-          if (errorMsg.trim().isEmpty) {
-            errorMsg =
-                'Unknown error occurred (Status: ${response.statusCode ?? 'unknown'})';
-          }
+          errorMsg =
+              _finalizeErrorMessage(errorMsg, statusCode: response.statusCode);
 
           // Log error response
           _logError(
@@ -892,11 +979,11 @@ class OneRequest {
           );
 
           if (resultOverlay && _globalErrorOverlayEnabled) {
-            EasyLoading.showError(errorMsg);
+            LoadingStuff.showError(errorMsg);
           }
           return Right(errorMsg);
         }
-      } on dio.DioException catch (e) {
+        } on dio.DioException catch (e) {
         if (shouldShowLoader) EasyLoading.dismiss();
         String msg;
         bool shouldRetry = false;
@@ -906,7 +993,8 @@ class OneRequest {
           msg = CustomExceptionHandlers(
                   error: ApiNotRespondingException('Request timeout', url))
               .getExceptionString();
-          shouldRetry = attempt < maxRetries;
+          shouldRetry = attempt < effectiveMaxRetries;
+          msg = _finalizeErrorMessage(msg);
           _logError(
             error: msg,
             url: url,
@@ -941,6 +1029,7 @@ class OneRequest {
             msg =
                 'Request failed (Status: ${e.response?.statusCode ?? 'unknown'})';
           }
+          msg = _finalizeErrorMessage(msg, statusCode: e.response?.statusCode);
           _logError(
             error: msg,
             url: url,
@@ -948,6 +1037,7 @@ class OneRequest {
           );
         } else if (e.type == dio.DioExceptionType.cancel) {
           msg = 'Request was cancelled.';
+          msg = _finalizeErrorMessage(msg);
           _logError(
             error: msg,
             url: url,
@@ -961,6 +1051,7 @@ class OneRequest {
           if (msg.isEmpty) {
             msg = 'Unable to connect to server. Please check your connection.';
           }
+          msg = _finalizeErrorMessage(msg);
           _logError(
             error: msg,
             url: url,
@@ -973,16 +1064,17 @@ class OneRequest {
         if (shouldRetry) {
           attempt++;
           _logWarning(
-              message: 'Retrying request (attempt $attempt/$maxRetries)...',
+              message:
+                  'Retrying request (attempt $attempt/$effectiveMaxRetries)...',
               url: url);
-          await Future.delayed(retryDelay);
+          await Future.delayed(effectiveRetryDelay);
           continue;
         }
         if (resultOverlay && _globalErrorOverlayEnabled) {
-          EasyLoading.showError(msg);
+          LoadingStuff.showError(msg);
         }
         return Right(msg);
-      } on SocketException catch (e) {
+        } on SocketException catch (e) {
         if (shouldShowLoader) EasyLoading.dismiss();
         var msg = CustomExceptionHandlers(error: e).getExceptionString();
         // Ensure error message is not empty
@@ -990,6 +1082,7 @@ class OneRequest {
           msg =
               'Network error: Unable to connect to server. Please check your internet connection.';
         }
+        msg = _finalizeErrorMessage(msg);
         _logError(
           error: msg,
           url: url,
@@ -999,16 +1092,17 @@ class OneRequest {
           _customLogger!(e, null);
         }
         if (resultOverlay && _globalErrorOverlayEnabled) {
-          EasyLoading.showError(msg);
+          LoadingStuff.showError(msg);
         }
         return Right(msg);
-      } on AppException catch (e) {
+        } on AppException catch (e) {
         if (shouldShowLoader) EasyLoading.dismiss();
         var msg = CustomExceptionHandlers(error: e).getExceptionString();
         // Ensure error message is not empty
         if (msg.isEmpty) {
           msg = 'An error occurred while processing your request.';
         }
+        msg = _finalizeErrorMessage(msg);
         _logError(
           error: msg,
           url: url,
@@ -1018,16 +1112,17 @@ class OneRequest {
           _customLogger!(e, null);
         }
         if (resultOverlay && _globalErrorOverlayEnabled) {
-          EasyLoading.showError(msg);
+          LoadingStuff.showError(msg);
         }
         return Right(msg);
-      } catch (e, stack) {
+        } catch (e, stack) {
         if (shouldShowLoader) EasyLoading.dismiss();
         var msg = CustomExceptionHandlers(error: e).getExceptionString();
         // Ensure error message is not empty
         if (msg.isEmpty) {
           msg = 'An unexpected error occurred: ${e.toString()}';
         }
+        msg = _finalizeErrorMessage(msg);
         _logError(
           error: msg,
           url: url,
@@ -1037,9 +1132,14 @@ class OneRequest {
           _customLogger!(e, stack);
         }
         if (resultOverlay && _globalErrorOverlayEnabled) {
-          EasyLoading.showError(msg);
+          LoadingStuff.showError(msg);
         }
         return Right(msg);
+        }
+      }
+    } finally {
+      for (final interceptor in addedInterceptors) {
+        r.interceptors.remove(interceptor);
       }
     }
   }
@@ -1104,7 +1204,12 @@ class OneRequest {
     if (data == null) return null;
     if (data is String) {
       final trimmed = data.trim();
-      return trimmed.isEmpty ? null : trimmed;
+      if (trimmed.isEmpty) return null;
+      // Avoid dumping whole HTML or stack traces to end users.
+      if (trimmed.startsWith('<!DOCTYPE html') || trimmed.startsWith('<html')) {
+        return 'Server returned an unexpected response.';
+      }
+      return trimmed;
     }
     if (data is Map) {
       // Try different common error message fields
@@ -1119,10 +1224,20 @@ class OneRequest {
       if (data['errors'] != null) {
         final errors = data['errors'];
         if (errors is List && errors.isNotEmpty) {
-          final first = errors.first.toString().trim();
+          final firstItem = errors.first;
+          if (firstItem is Map && firstItem.isNotEmpty) {
+            final first = firstItem.values.first.toString().trim();
+            if (first.isNotEmpty) return first;
+          }
+          final first = firstItem.toString().trim();
           if (first.isNotEmpty) return first;
         } else if (errors is Map && errors.isNotEmpty) {
-          final first = errors.values.first.toString().trim();
+          final value = errors.values.first;
+          if (value is List && value.isNotEmpty) {
+            final first = value.first.toString().trim();
+            if (first.isNotEmpty) return first;
+          }
+          final first = value.toString().trim();
           if (first.isNotEmpty) return first;
         } else {
           final errStr = errors.toString().trim();

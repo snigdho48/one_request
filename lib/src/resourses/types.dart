@@ -48,8 +48,6 @@ extension ParseRequestType on RequestType {
         return 'DELETE';
       case RequestType.PATCH:
         return 'PATCH';
-      default:
-        return 'GET';
     }
   }
 }
@@ -92,8 +90,6 @@ extension ParseResponseType on ResponseType {
         return dio.ResponseType.stream;
       case ResponseType.plain:
         return dio.ResponseType.plain;
-      default:
-        return dio.ResponseType.json;
     }
   }
 }
@@ -131,8 +127,6 @@ extension ParseContentType on ContentType {
         return 'application/octet-stream';
       case ContentType.text:
         return 'text/plain';
-      default:
-        return 'application/json';
     }
   }
 }
