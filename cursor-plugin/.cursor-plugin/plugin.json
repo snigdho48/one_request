@@ -1,0 +1,27 @@
+{
+  "name": "one-request",
+  "displayName": "one_request",
+  "version": "3.0.0",
+  "description": "Use the one_request Flutter HTTP package as the only network client. Never add dio, dart_either, either_dart, or flutter_easyloading — they are already inside one_request.",
+  "author": {
+    "name": "snigdho48",
+    "email": "snigdho.howlader@gmail.com"
+  },
+  "homepage": "https://pub.dev/packages/one_request",
+  "repository": "https://github.com/snigdho48/one_request",
+  "license": "GPL-3.0",
+  "logo": "assets/logo.svg",
+  "keywords": [
+    "flutter",
+    "dio",
+    "http",
+    "one_request",
+    "either"
+  ],
+  "category": "developer-tools",
+  "tags": [
+    "flutter",
+    "networking",
+    "dio"
+  ]
+}

@@ -1,8 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:one_request/one_request.dart';
-import 'package:either_dart/either.dart';
-import 'package:flutter/material.dart';
-import 'package:dio/dio.dart' as dio;
 
 void main() {
   group('OneRequest', () {
@@ -16,9 +14,10 @@ void main() {
     });
 
     test('returns type-safe success', () async {
-      final result = await Future.value(Left({'foo': 'bar'}));
-      expect(result.isLeft, true);
-      expect(result.left['foo'], 'bar');
+      final result = await Future.value(
+          Right<String, Map<String, String>>({'foo': 'bar'}));
+      expect(result.isRight, true);
+      expect(result.getOrNull()!['foo'], 'bar');
     });
 
     test('calls custom error handler and logger', () async {
@@ -43,41 +42,69 @@ void main() {
       );
     });
 
+    test('error handler stays optional and additive', () {
+      OneRequest.resetErrorHandler();
+      expect(OneRequest.errorHandler, same(RestErrorParser.handler));
+      expect(OneRequest.errorLogger, isNull);
+
+      var logged = false;
+      OneRequest.setErrorHandler(logger: (error, stack) {
+        logged = true;
+      });
+      expect(OneRequest.errorHandler, same(RestErrorParser.handler));
+      expect(OneRequest.errorLogger, isNotNull);
+
+      OneRequest.setErrorHandler(
+        handler: (body, status, url) => 'from-app',
+      );
+      expect(OneRequest.errorHandler!({}, null, null), 'from-app');
+      expect(OneRequest.errorLogger, isNotNull);
+
+      OneRequest.setErrorHandler(clearHandler: true);
+      expect(OneRequest.errorHandler, isNull);
+      expect(OneRequest.errorLogger, isNotNull);
+      expect(logged, isFalse);
+
+      OneRequest.clearErrorHandler();
+      expect(OneRequest.errorHandler, isNull);
+      expect(OneRequest.errorLogger, isNull);
+    });
+
     test('retries on transient error', () async {
       int attempts = 0;
-      Future<Either<Map<String, dynamic>, String>> fakeRequest() async {
+      Future<Either<String, Map<String, dynamic>>> fakeRequest() async {
         attempts++;
         if (attempts < 3) {
-          throw dio.DioException(
-            requestOptions: dio.RequestOptions(path: '/test'),
-            type: dio.DioExceptionType.connectionTimeout,
+          throw DioException(
+            requestOptions: RequestOptions(path: '/test'),
+            type: DioExceptionType.connectionTimeout,
             message: 'timeout',
           );
         }
-        return Left({'ok': true});
+        return Right({'ok': true});
       }
 
       int maxRetries = 2;
       int attempt = 0;
-      late Either<Map<String, dynamic>, String> result;
+      late Either<String, Map<String, dynamic>> result;
       while (true) {
         try {
           result = await fakeRequest();
           break;
-        } on dio.DioException catch (e) {
-          if (e.type == dio.DioExceptionType.connectionTimeout &&
+        } on DioException catch (e) {
+          if (e.type == DioExceptionType.connectionTimeout &&
               attempt < maxRetries) {
             attempt++;
             await Future.delayed(const Duration(milliseconds: 10));
             continue;
           }
-          result = Right('error');
+          result = Left('error');
           break;
         }
       }
       expect(attempt, 2);
-      expect(result.isLeft, true);
-      expect(result.left['ok'], true);
+      expect(result.isRight, true);
+      expect(result.getOrNull()!['ok'], true);
     });
 
     test('global config merges headers', () {
@@ -134,6 +161,15 @@ void main() {
       expect(OneRequest.isResponseLoggerEnabled(), true);
     });
 
+    test('re-exports Dio and Either so extra packages are not required', () {
+      expect(CancelToken.new, isA<Function>());
+      expect(FormData.fromMap(<String, dynamic>{}), isA<FormData>());
+      expect(Left<String, int>('err').isLeft, isTrue);
+      expect(Right<String, int>(1).isRight, isTrue);
+      expect(RequestType.GET.value, 'GET');
+      expect(ResponseType.json, isNotNull);
+    });
+
     test('getOverlaySettings includes logger states', () {
       OneRequest.setErrorLoggerEnabled(true);
       OneRequest.setResponseLoggerEnabled(true);
@@ -178,6 +214,100 @@ void main() {
           },
         ),
       ));
+    });
+
+    test('RestErrorParser reads Django details, error, and code envelopes', () {
+      expect(
+        RestErrorParser.messageFromBody({
+          'details': {
+            'phone': ['Enter a valid phone number.']
+          }
+        }),
+        'Enter a valid phone number.',
+      );
+      expect(
+        RestErrorParser.messageFromBody({'error': 'Invalid coupon'}),
+        'Invalid coupon',
+      );
+      expect(
+        RestErrorParser.messageFromBody({'detail': 'Not found'},
+            statusCode: 404),
+        'Not found',
+      );
+      expect(
+        RestErrorParser.messageFromBody({}, statusCode: 401),
+        'Unauthorized. Please login again.',
+      );
+
+      final encoded = RestErrorParser.handler(
+        {
+          'error': 'below pack',
+          'code': 'below_pack_size',
+          'data': {'pack_size': 6}
+        },
+        400,
+        '/cart/add/',
+      );
+      final parsed = RequestException.fromClient(encoded);
+      expect(parsed.message, 'below pack');
+      expect(parsed.code, 'below_pack_size');
+      expect(parsed.data?['pack_size'], 6);
+    });
+
+    test('unwrapPayload pulls nested data envelopes', () {
+      expect(
+          unwrapPayload({
+            'data': {'id': 1},
+            'success': true
+          }),
+          {'id': 1});
+      expect(unwrapPayload({'id': 2}), {'id': 2});
+      expect(unwrapPayload([1, 2]), [1, 2]);
+    });
+
+    test('request() throws RequestException on Left', () {
+      expect(
+        () =>
+            throw RequestException.fromClient('{"message":"fail","code":"x"}'),
+        throwsA(
+          isA<RequestException>()
+              .having((e) => e.message, 'message', 'fail')
+              .having((e) => e.code, 'code', 'x'),
+        ),
+      );
+    });
+
+    test('wrap() is a TransitionBuilder and auto-inits loading', () {
+      final builder = OneRequest.wrap();
+      expect(builder, isA<TransitionBuilder>());
+      final nested = OneRequest.wrap(
+        (context, child) => child ?? const SizedBox.shrink(),
+      );
+      expect(nested, isA<TransitionBuilder>());
+    });
+
+    test('setAuth attaches Bearer token without a separate Dio dependency',
+        () async {
+      OneRequest.clearAuth();
+      OneRequest.setAuth(
+        getAccessToken: () async => 'abc123',
+        getRefreshToken: () async => 'refresh',
+        saveTokens: (access, refresh) async {},
+      );
+      final options = RequestOptions(path: '/auth/me/');
+      final interceptor =
+          OneRequest.client.interceptors.whereType<AuthInterceptor>().single;
+      interceptor.onRequest(
+        options,
+        RequestInterceptorHandler(),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(options.headers['Authorization'], 'Bearer abc123');
+      OneRequest.clearAuth();
+      expect(
+        OneRequest.client.interceptors.whereType<AuthInterceptor>(),
+        isEmpty,
+      );
     });
   });
 }

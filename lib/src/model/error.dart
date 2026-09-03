@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:io' if (dart.library.html) 'dart:html';
+
+import '../platform/io_types.dart';
 
 /// An exception class for handling application-specific errors.
 ///

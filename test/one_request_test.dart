@@ -1,5 +1,3 @@
-import 'dart:io' if (dart.library.html) 'dart:html';
-
 import 'package:flutter/material.dart';
 import 'package:one_request/one_request.dart';
 
@@ -55,8 +53,6 @@ class _MyHomePageState extends State<MyHomePage> {
       formData: true,
       body: {
         'file': [
-          // file  send
-          request.file(file: File('path'), filename: 'file'),
           request.fileFromByte(filebyte: filebytes),
           request.fileFormString(filestring: 'fileString'),
         ],
@@ -65,10 +61,8 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       // Response value
       value.fold(
-        // Success
-        (l) => _counter = l['fact'],
-        // Error
-        (r) => _counter = r.toString(),
+        ifRight: (data) => _counter = data['fact'],
+        ifLeft: (error) => _counter = error.toString(),
       );
     });
   }

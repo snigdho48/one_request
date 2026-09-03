@@ -1,16 +1,17 @@
 import 'dart:core';
 import 'dart:convert';
-import 'dart:io' if (dart.library.html) 'dart:html';
 
 import 'package:dio/dio.dart' as dio;
-import 'package:either_dart/either.dart';
+import 'package:dart_either/dart_either.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:logging/logging.dart';
-import 'package:one_request/src/resourses/types.dart';
-import 'package:one_request/src/resourses/utils.dart';
-
+import 'auth/auth_interceptor.dart';
 import 'model/error.dart';
+import 'model/request_exception.dart';
+import 'platform/io_types.dart';
+import 'resourses/types.dart';
+import 'resourses/utils.dart';
 
 typedef ErrorHandler = String Function(
     Map<String, dynamic> errorBody, int? statusCode, String? url);
@@ -20,7 +21,6 @@ typedef ErrorLogger = void Function(Object error, StackTrace? stackTrace);
 class OneRequest {
   static String? _baseUrl;
   static Map<String, String>? _globalHeaders;
-  static List<dio.Interceptor>? _globalInterceptors;
 
   // Global overlay settings
   static bool _globalLoaderEnabled = true;
@@ -45,8 +45,16 @@ class OneRequest {
 
   static final dio.Dio _dio = dio.Dio();
   static final Logger _logger = Logger('OneRequest');
+  static AuthInterceptor? _authInterceptor;
+  static bool _loadingConfigured = false;
+  static final List<dio.Interceptor> _attachedGlobalInterceptors = [];
 
-  /// Configure global options for all requests.
+  /// Shared Dio client. Prefer [send]/[request]/[setAuth] over using this directly.
+  static dio.Dio get client => _dio;
+
+  /// Configure global options for all requests. Every argument is optional;
+  /// omit a field to leave the current value unchanged. Overlays, logging,
+  /// retries, and cache can all be turned off from the consuming app.
   static void configure({
     String? baseUrl,
     Map<String, String>? headers,
@@ -73,7 +81,16 @@ class OneRequest {
       _globalHeaders = headers;
     }
     if (interceptors != null) {
-      _globalInterceptors = interceptors;
+      for (final interceptor in _attachedGlobalInterceptors) {
+        _dio.interceptors.remove(interceptor);
+      }
+      _attachedGlobalInterceptors.clear();
+      for (final interceptor in interceptors) {
+        if (!_dio.interceptors.contains(interceptor)) {
+          _dio.interceptors.add(interceptor);
+          _attachedGlobalInterceptors.add(interceptor);
+        }
+      }
     }
     if (enableLoader != null) {
       _globalLoaderEnabled = enableLoader;
@@ -120,7 +137,6 @@ class OneRequest {
     if (defaultUseCache != null) {
       _defaultUseCache = defaultUseCache;
     }
-    // Update logger state after all logger settings are applied
     _updateLoggerEnabled();
   }
 
@@ -207,7 +223,11 @@ class OneRequest {
   static void resetConfig() {
     _baseUrl = null;
     _globalHeaders = null;
-    _globalInterceptors = null;
+    for (final interceptor in _attachedGlobalInterceptors) {
+      _dio.interceptors.remove(interceptor);
+    }
+    _attachedGlobalInterceptors.clear();
+    _loadingConfigured = false;
     _globalLoaderEnabled = true;
     _globalErrorOverlayEnabled = true;
     _globalSuccessOverlayEnabled = true;
@@ -222,12 +242,35 @@ class OneRequest {
     _defaultRetryDelay = const Duration(seconds: 1);
     _defaultMaxRedirects = 1;
     _defaultUseCache = false;
+    clearAuth();
   }
 
   // ignore: non_constant_identifier_names
   // initializer
   static Future<void>? get dismissLoading => LoadingStuff.loadingDismiss();
-  static TransitionBuilder get initLoading => LoadingStuff.initLoading;
+  static TransitionBuilder get initLoading => wrap();
+
+  /// Composes EasyLoading with an extra overlay (GetMaterialApp, banners, etc).
+  /// Optional — skip this and use your own `builder` if you do not want EasyLoading.
+  ///
+  /// ```dart
+  /// GetMaterialApp(
+  ///   builder: OneRequest.wrap((context, child) => Stack(
+  ///     children: [child!, const OfflineBanner()],
+  ///   )),
+  /// )
+  /// ```
+  static TransitionBuilder wrap([TransitionBuilder? overlay]) {
+    _ensureLoadingConfig();
+    final loading = LoadingStuff.initLoading;
+    if (overlay == null) return loading;
+    return (context, child) => overlay(context, loading(context, child));
+  }
+
+  static void _ensureLoadingConfig() {
+    if (_loadingConfigured) return;
+    loadingconfig();
+  }
 
   /// Returns the loading function
   static Future<void>? Function({
@@ -290,24 +333,26 @@ class OneRequest {
     EdgeInsetsGeometry? contentPadding,
     EasyLoadingMaskType? maskType,
     Color? maskColor,
-  }) =>
-      LoadingStuff.configLoad(
-        indicator: indicator,
-        progressColor: progressColor,
-        backgroundColor: backgroundColor,
-        indicatorColor: indicatorColor,
-        textColor: textColor,
-        success: success,
-        error: error,
-        info: info,
-        radius: radius,
-        fontSize: fontSize,
-        progressWidth: progressWidth,
-        indicatorSize: indicatorSize,
-        contentPadding: contentPadding,
-        maskType: maskType,
-        maskColor: maskColor,
-      );
+  }) {
+    _loadingConfigured = true;
+    LoadingStuff.configLoad(
+      indicator: indicator,
+      progressColor: progressColor,
+      backgroundColor: backgroundColor,
+      indicatorColor: indicatorColor,
+      textColor: textColor,
+      success: success,
+      error: error,
+      info: info,
+      radius: radius,
+      fontSize: fontSize,
+      progressWidth: progressWidth,
+      indicatorSize: indicatorSize,
+      contentPadding: contentPadding,
+      maskType: maskType,
+      maskColor: maskColor,
+    );
+  }
 
   // filefromByte function
   /// Returns a [dio.MultipartFile] object from a list of bytes.
@@ -336,36 +381,101 @@ class OneRequest {
       dio.MultipartFile.fromString(
         filestring,
       );
-// filefromFile function
-  /// Returns a [dio.MultipartFile] object from a [File] object.
-  ///
-  /// The [file] parameter is a required [File] object that represents the file to be uploaded.
-  ///
-  /// The [filename] parameter is an optional [String] that represents the name of the file to be uploaded. If not provided, the name of the file will be used.
-  ///
-  /// Example usage:
-  /// ```
-  /// final file = File('/path/to/file');
-  /// final multipartFile = dioRequest.file(file: file, filename: 'my_file.txt');
-  /// ```
+
+  /// Native (`dart:io`) only — Android, iOS, Windows, macOS, Linux.
+  /// On web use [fileFromByte] or [fileFormString].
   dio.MultipartFile file({required File file, String? filename}) =>
-      dio.MultipartFile.fromFileSync(
-        file.path,
-        filename: filename ?? file.path.split('/').last,
-      );
+      multipartFromFile(file, filename: filename);
 
-  /// Optional error handler and logger types
-  static ErrorHandler? _customErrorHandler;
-  static ErrorLogger? _customLogger;
+  /// Native (`dart:io`) only. On web use [fileFromByte].
+  Future<dio.MultipartFile> fileFromPath({
+    required String path,
+    String? filename,
+  }) =>
+      multipartFromPath(path, filename: filename);
 
-  /// Set a custom error handler and logger for all requests.
-  static void setErrorHandler({ErrorHandler? handler, ErrorLogger? logger}) {
-    _customErrorHandler = handler;
-    _customLogger = logger;
+  /// Attach JWT access tokens and optional refresh-on-401.
+  /// Optional — skip this and pass headers/interceptors from the app instead.
+  ///
+  /// Skip adding `dio` to pubspec — interceptors, [CancelToken], and
+  /// [MultipartFile] are re-exported from this package.
+  static void setAuth({
+    required TokenReader getAccessToken,
+    TokenReader? getRefreshToken,
+    TokenWriter? saveTokens,
+    String refreshPath = '/auth/token/refresh/',
+    List<String> skipPathContains = const ['/auth/token'],
+    String headerName = 'Authorization',
+    String headerPrefix = 'Bearer ',
+    Future<void> Function()? onRefreshFailed,
+  }) {
+    clearAuth();
+    _authInterceptor = AuthInterceptor(
+      getAccessToken: getAccessToken,
+      getRefreshToken: getRefreshToken,
+      saveTokens: saveTokens,
+      refreshPath: refreshPath,
+      skipPathContains: skipPathContains,
+      headerName: headerName,
+      headerPrefix: headerPrefix,
+      onRefreshFailed: onRefreshFailed,
+      client: _dio,
+    );
+    _dio.interceptors.add(_authInterceptor!);
   }
 
-  /// Reset custom error handler and logger.
+  /// Remove the interceptor installed by [setAuth].
+  static void clearAuth() {
+    if (_authInterceptor != null) {
+      _dio.interceptors.remove(_authInterceptor);
+      _authInterceptor = null;
+    }
+  }
+
+  /// Optional error handler and logger. Defaults to [RestErrorParser.handler].
+  /// The app can replace, wrap, or clear these at any time.
+  static ErrorHandler? _customErrorHandler = RestErrorParser.handler;
+  static ErrorLogger? _customLogger;
+
+  /// Current error handler, or `null` if the app cleared it.
+  static ErrorHandler? get errorHandler => _customErrorHandler;
+
+  /// Current error logger, or `null` if none is set.
+  static ErrorLogger? get errorLogger => _customLogger;
+
+  /// Replace only the pieces you pass. Omitted arguments stay as they are.
+  ///
+  /// ```dart
+  /// OneRequest.setErrorHandler(handler: myParser); // keep logger
+  /// OneRequest.setErrorHandler(logger: myLog);     // keep parser
+  /// OneRequest.setErrorHandler(clearHandler: true); // built-in extraction only
+  /// ```
+  static void setErrorHandler({
+    ErrorHandler? handler,
+    ErrorLogger? logger,
+    bool clearHandler = false,
+    bool clearLogger = false,
+  }) {
+    if (clearHandler) {
+      _customErrorHandler = null;
+    } else if (handler != null) {
+      _customErrorHandler = handler;
+    }
+    if (clearLogger) {
+      _customLogger = null;
+    } else if (logger != null) {
+      _customLogger = logger;
+    }
+  }
+
+  /// Restore the built-in REST parser and clear the logger.
   static void resetErrorHandler() {
+    _customErrorHandler = RestErrorParser.handler;
+    _customLogger = null;
+  }
+
+  /// Turn off the custom parser and logger. Payload extraction still runs.
+  static void clearErrorHandler() {
     _customErrorHandler = null;
     _customLogger = null;
   }
@@ -378,8 +488,7 @@ class OneRequest {
 
   // send request function constructor
   /// Sends an HTTP request with the given parameters and returns a [Future] that
-  /// completes with an [Either] object containing either the response body or a
-  /// [CustomExceptionHandlers] object if an error occurred.
+  /// completes with an [Either] of error [String] (`Left`) or response data (`Right`).
   ///
   /// The [body] parameter is an optional map of key-value pairs to include in the
   /// request body. The [queryParameters] parameter is an optional map of key-value
@@ -394,7 +503,7 @@ class OneRequest {
   /// number of seconds to wait for a response before timing out. The [innderData]
   /// parameter specifies whether to include the response data in the returned
   /// [Either] object.
-  Future<Either<T, String>> send<T extends Object?>({
+  Future<Either<String, T>> send<T extends Object?>({
     Map<String, dynamic>? body,
     Map<String, dynamic>? queryParameters,
     bool formData = false,
@@ -406,6 +515,7 @@ class OneRequest {
     ContentType contentType = ContentType.json,
     int? timeout,
     bool innderData = false,
+    bool innerData = false,
     bool loader = true,
     bool resultOverlay = true,
     dio.CancelToken? cancelToken,
@@ -425,7 +535,7 @@ class OneRequest {
         timeout: timeout,
         responsetype: responsetype,
         contentType: contentType,
-        innderData: innderData,
+        innderData: innderData || innerData,
         loader: loader,
         resultOverlay: resultOverlay,
         cancelToken: cancelToken,
@@ -434,6 +544,65 @@ class OneRequest {
         retryDelay: retryDelay,
         useCache: useCache,
       );
+
+  /// Same as [send], but unwraps [Either]: returns data or throws [RequestException].
+  ///
+  /// This is the API used in production apps so callers do not fold every call.
+  /// Set [innerData] to pull the nested `data` field from `{data: ...}` envelopes.
+  Future<T> request<T extends Object?>({
+    Map<String, dynamic>? body,
+    Map<String, dynamic>? queryParameters,
+    bool formData = false,
+    ResponseType responsetype = ResponseType.json,
+    required String url,
+    required RequestType method,
+    Map<String, String>? header,
+    int? maxRedirects,
+    ContentType contentType = ContentType.json,
+    int? timeout,
+    bool innderData = false,
+    bool innerData = false,
+    bool unwrap = false,
+    bool loader = true,
+    bool resultOverlay = true,
+    dio.CancelToken? cancelToken,
+    List<dio.Interceptor>? interceptors,
+    int? maxRetries,
+    Duration? retryDelay,
+    bool? useCache,
+  }) async {
+    final result = await send<T>(
+      body: body,
+      queryParameters: queryParameters,
+      formData: formData,
+      responsetype: responsetype,
+      url: url,
+      method: method,
+      header: header,
+      maxRedirects: maxRedirects,
+      contentType: contentType,
+      timeout: timeout,
+      innderData: innderData,
+      innerData: innerData,
+      loader: loader,
+      resultOverlay: resultOverlay,
+      cancelToken: cancelToken,
+      interceptors: interceptors,
+      maxRetries: maxRetries,
+      retryDelay: retryDelay,
+      useCache: useCache,
+    );
+    return result.fold(
+      ifLeft: (error) => throw RequestException.fromClient(error),
+      ifRight: (data) {
+        if (unwrap) {
+          return unwrapPayload(data) as T;
+        }
+        return data;
+      },
+    );
+  }
+
   // main request function
   /// Sends an HTTP request using Dio package.
   ///
@@ -709,7 +878,7 @@ class OneRequest {
     return sanitized;
   }
 
-  Future<Either<T, String>> _httpequest<T extends Object?>({
+  Future<Either<String, T>> _httpequest<T extends Object?>({
     Map<String, dynamic>? body,
     Map<String, dynamic>? queryParameters,
     bool formData = false,
@@ -774,11 +943,7 @@ class OneRequest {
       formData: formData,
     );
 
-    // Add interceptors
-    final allInterceptors = <dio.Interceptor>[
-      ...?_globalInterceptors,
-      ...?interceptors
-    ];
+    final allInterceptors = <dio.Interceptor>[...?interceptors];
     final addedInterceptors = <dio.Interceptor>[];
     if (allInterceptors.isNotEmpty) {
       for (final interceptor in allInterceptors) {
@@ -792,13 +957,21 @@ class OneRequest {
     final bool isGet = method == RequestType.GET;
     final String? cacheKey =
         isGet ? _buildCacheKey(url, queryParameters) : null;
-    if (effectiveUseCache && isGet && cacheKey != null && _cache.containsKey(cacheKey)) {
+    if (effectiveUseCache &&
+        isGet &&
+        cacheKey != null &&
+        _cache.containsKey(cacheKey)) {
       final dynamic cached = _cache[cacheKey];
-      return Left(cached as T);
+      return Right(cached as T);
     }
 
-    // Apply global loader setting (only show if both global and per-request allow it)
+    // Loader / overlay only if the app left them on (global AND per-request).
     final shouldShowLoader = loader && _globalLoaderEnabled;
+    final shouldShowOverlay = resultOverlay &&
+        (_globalErrorOverlayEnabled || _globalSuccessOverlayEnabled);
+    if (shouldShowLoader || shouldShowOverlay) {
+      _ensureLoadingConfig();
+    }
     if (shouldShowLoader) {
       LoadingStuff.loading();
     }
@@ -807,249 +980,286 @@ class OneRequest {
     try {
       while (true) {
         try {
-        final dio.Response response = await r
-            .request(
-          url,
-          data: formData && body != null ? dio.FormData.fromMap(body) : body,
-          queryParameters: queryParameters,
-          options: options ??
-              dio.Options(
-                contentType: contentType.value,
-                responseType: responsetype.value,
-                followRedirects: effectiveMaxRedirects != 1,
-                method: method.value,
-                headers: finalHeaders,
-                maxRedirects: effectiveMaxRedirects,
-                validateStatus: (status) => true,
-              ),
-          cancelToken: cancelToken,
-        )
-            .timeout(
-          Duration(seconds: effectiveTimeout),
-          onTimeout: () {
-            _logError(
-              error: 'Request timeout after ${effectiveTimeout}s',
-              url: url,
-              statusCode: null,
-            );
-            throw ApiNotRespondingException('Request timeout', url);
-          },
-        );
-
-        final duration = DateTime.now().difference(startTime);
-
-        if (shouldShowLoader) {
-          EasyLoading.dismiss();
-        }
-
-        // Success responses
-        if ([200, 201, 202, 203, 204].contains(response.statusCode)) {
-          final dynamic responseJson = response.data;
-
-          // Log successful response - pass all data types
-          _logResponse(
-            statusCode: response.statusCode,
-            statusMessage: response.statusMessage,
-            data:
-                responseJson, // Pass the actual response data (can be Map, List, String, etc.)
-            url: url,
-            duration: duration,
+          final dio.Response response = await r
+              .request(
+            url,
+            data: formData && body != null ? dio.FormData.fromMap(body) : body,
+            queryParameters: queryParameters,
+            options: options ??
+                dio.Options(
+                  contentType: contentType.value,
+                  responseType: responsetype.value,
+                  followRedirects: effectiveMaxRedirects != 1,
+                  method: method.value,
+                  headers: finalHeaders,
+                  maxRedirects: effectiveMaxRedirects,
+                  validateStatus: (status) => true,
+                ),
+            cancelToken: cancelToken,
+          )
+              .timeout(
+            Duration(seconds: effectiveTimeout),
+            onTimeout: () {
+              _logError(
+                error: 'Request timeout after ${effectiveTimeout}s',
+                url: url,
+                statusCode: null,
+              );
+              throw ApiNotRespondingException('Request timeout', url);
+            },
           );
 
-          if (innderData) {
-            try {
-              if (responseJson is Map &&
-                  responseJson['data'] != null &&
-                  responseJson['data'] != '') {
-                if (effectiveUseCache && isGet && cacheKey != null) {
-                  _cache[cacheKey] = responseJson['data'];
-                }
-                return Left(responseJson['data'] as T);
-              } else {
-                if (resultOverlay &&
-                    _globalSuccessOverlayEnabled &&
-                    responseJson is Map &&
-                    responseJson['message'] != null) {
-                  EasyLoading.showSuccess(responseJson['message'].toString());
-                }
-                return Right(responseJson.toString());
-              }
-            } catch (e) {
-              final msg =
-                  CustomExceptionHandlers(error: e).getExceptionString();
-              _logError(
-                error: msg,
-                url: url,
-                statusCode: response.statusCode,
-              );
-              if (resultOverlay && _globalErrorOverlayEnabled) {
-                LoadingStuff.showError(msg);
-              }
-              return Right(msg);
-            }
-          }
-          if (resultOverlay && _globalSuccessOverlayEnabled) {
-            EasyLoading.showSuccess(
-                response.statusMessage?.toString() ?? 'Success');
-          }
-          if (effectiveUseCache && isGet && cacheKey != null) {
-            _cache[cacheKey] = responseJson;
-          }
-          return Left(responseJson as T);
-        } else {
-          // Handle non-2xx responses (3xx redirects, 4xx/5xx errors)
-          String errorMsg;
+          final duration = DateTime.now().difference(startTime);
 
-          // Handle redirects (3xx status codes) - these are logged as responses, not errors
-          if (response.statusCode != null &&
-              response.statusCode! >= 300 &&
-              response.statusCode! < 400) {
-            // Log redirect as a response (3xx are part of response logging)
+          if (shouldShowLoader) {
+            EasyLoading.dismiss();
+          }
+
+          // Success responses
+          if ([200, 201, 202, 203, 204].contains(response.statusCode)) {
+            final dynamic responseJson = response.data;
+
+            // Log successful response - pass all data types
             _logResponse(
               statusCode: response.statusCode,
               statusMessage: response.statusMessage,
-              data: response.data, // Pass the actual response data
+              data:
+                  responseJson, // Pass the actual response data (can be Map, List, String, etc.)
               url: url,
               duration: duration,
             );
 
-            final String? location = response.headers.value('location') ??
-                response.headers.value('Location');
-            if (location != null) {
-              _logInfo(
-                  message: 'Redirect detected: $url → $location', url: url);
-              // Try to follow redirect by making a new request
-              if (effectiveMaxRedirects > 1 && attempt < effectiveMaxRedirects) {
+            if (innderData) {
+              try {
+                if (responseJson is Map &&
+                    responseJson['data'] != null &&
+                    responseJson['data'] != '') {
+                  if (effectiveUseCache && isGet && cacheKey != null) {
+                    _cache[cacheKey] = responseJson['data'];
+                  }
+                  return Right(responseJson['data'] as T);
+                } else {
+                  if (resultOverlay &&
+                      _globalSuccessOverlayEnabled &&
+                      responseJson is Map &&
+                      responseJson['message'] != null) {
+                    EasyLoading.showSuccess(responseJson['message'].toString());
+                  }
+                  return Left(responseJson.toString());
+                }
+              } catch (e) {
+                final msg =
+                    CustomExceptionHandlers(error: e).getExceptionString();
+                _logError(
+                  error: msg,
+                  url: url,
+                  statusCode: response.statusCode,
+                );
+                if (resultOverlay && _globalErrorOverlayEnabled) {
+                  LoadingStuff.showError(msg);
+                }
+                return Left(msg);
+              }
+            }
+            if (resultOverlay && _globalSuccessOverlayEnabled) {
+              EasyLoading.showSuccess(
+                  response.statusMessage?.toString() ?? 'Success');
+            }
+            if (effectiveUseCache && isGet && cacheKey != null) {
+              _cache[cacheKey] = responseJson;
+            }
+            return Right(responseJson as T);
+          } else {
+            // Handle non-2xx responses (3xx redirects, 4xx/5xx errors)
+            String errorMsg;
+
+            // Handle redirects (3xx status codes) - these are logged as responses, not errors
+            if (response.statusCode != null &&
+                response.statusCode! >= 300 &&
+                response.statusCode! < 400) {
+              // Log redirect as a response (3xx are part of response logging)
+              _logResponse(
+                statusCode: response.statusCode,
+                statusMessage: response.statusMessage,
+                data: response.data, // Pass the actual response data
+                url: url,
+                duration: duration,
+              );
+
+              final String? location = response.headers.value('location') ??
+                  response.headers.value('Location');
+              if (location != null) {
                 _logInfo(
-                    message: 'Following redirect to: $location', url: location);
-                // Update URL and retry
-                url = Uri.parse(url).resolve(location).toString();
-                attempt++;
-                await Future.delayed(const Duration(milliseconds: 100));
-                continue;
+                    message: 'Redirect detected: $url → $location', url: url);
+                // Try to follow redirect by making a new request
+                if (effectiveMaxRedirects > 1 &&
+                    attempt < effectiveMaxRedirects) {
+                  _logInfo(
+                      message: 'Following redirect to: $location',
+                      url: location);
+                  // Update URL and retry
+                  url = Uri.parse(url).resolve(location).toString();
+                  attempt++;
+                  await Future.delayed(const Duration(milliseconds: 100));
+                  continue;
+                } else {
+                  errorMsg =
+                      'Redirect not followed. Please check URL: $url (Status: ${response.statusCode})';
+                }
               } else {
                 errorMsg =
-                    'Redirect not followed. Please check URL: $url (Status: ${response.statusCode})';
+                    'Redirect ${response.statusCode} but no location header found';
               }
+            } else if (_customErrorHandler != null &&
+                response.data is Map<String, dynamic>) {
+              final customMsg = _customErrorHandler!(
+                  response.data as Map<String, dynamic>,
+                  response.statusCode,
+                  url);
+              // Ensure custom error handler doesn't return empty string
+              errorMsg = (customMsg.trim().isNotEmpty)
+                  ? customMsg.trim()
+                  : 'Request failed with status ${response.statusCode}';
             } else {
-              errorMsg =
-                  'Redirect ${response.statusCode} but no location header found';
-            }
-          } else if (_customErrorHandler != null &&
-              response.data is Map<String, dynamic>) {
-            final customMsg = _customErrorHandler!(
-                response.data as Map<String, dynamic>,
-                response.statusCode,
-                url);
-            // Ensure custom error handler doesn't return empty string
-            errorMsg = (customMsg.trim().isNotEmpty)
-                ? customMsg.trim()
-                : 'Request failed with status ${response.statusCode}';
-          } else {
-            final extractedMsg = _extractErrorMessage(response.data);
-            if (extractedMsg != null && extractedMsg.trim().isNotEmpty) {
-              errorMsg = extractedMsg.trim();
-            } else if (response.statusMessage != null &&
-                response.statusMessage!.trim().isNotEmpty) {
-              errorMsg = response.statusMessage!.trim();
-            } else {
-              // Fallback error message based on status code
-              if (response.statusCode == 401) {
-                errorMsg = 'Unauthorized. Please login again.';
-              } else if (response.statusCode == 403) {
-                errorMsg = 'Access forbidden. You do not have permission.';
-              } else if (response.statusCode == 404) {
-                errorMsg = 'Resource not found.';
-              } else if (response.statusCode == 500) {
-                errorMsg = 'Server error. Please try again later.';
+              final extractedMsg = _extractErrorMessage(response.data);
+              if (extractedMsg != null && extractedMsg.trim().isNotEmpty) {
+                errorMsg = extractedMsg.trim();
+              } else if (response.statusMessage != null &&
+                  response.statusMessage!.trim().isNotEmpty) {
+                errorMsg = response.statusMessage!.trim();
               } else {
-                errorMsg = 'Request failed with status ${response.statusCode}';
+                // Fallback error message based on status code
+                if (response.statusCode == 401) {
+                  errorMsg = 'Unauthorized. Please login again.';
+                } else if (response.statusCode == 403) {
+                  errorMsg = 'Access forbidden. You do not have permission.';
+                } else if (response.statusCode == 404) {
+                  errorMsg = 'Resource not found.';
+                } else if (response.statusCode == 500) {
+                  errorMsg = 'Server error. Please try again later.';
+                } else {
+                  errorMsg =
+                      'Request failed with status ${response.statusCode}';
+                }
               }
             }
-          }
 
-          errorMsg =
-              _finalizeErrorMessage(errorMsg, statusCode: response.statusCode);
+            errorMsg = _finalizeErrorMessage(errorMsg,
+                statusCode: response.statusCode);
 
-          // Log error response
-          _logError(
-            error: errorMsg,
-            url: url,
-            statusCode: response.statusCode,
-          );
+            // Log error response
+            _logError(
+              error: errorMsg,
+              url: url,
+              statusCode: response.statusCode,
+            );
 
-          if (resultOverlay && _globalErrorOverlayEnabled) {
-            LoadingStuff.showError(errorMsg);
-          }
-          return Right(errorMsg);
-        }
-        } on dio.DioException catch (e) {
-        if (shouldShowLoader) EasyLoading.dismiss();
-        String msg;
-        bool shouldRetry = false;
-        if (e.type == dio.DioExceptionType.connectionTimeout ||
-            e.type == dio.DioExceptionType.sendTimeout ||
-            e.type == dio.DioExceptionType.receiveTimeout) {
-          msg = CustomExceptionHandlers(
-                  error: ApiNotRespondingException('Request timeout', url))
-              .getExceptionString();
-          shouldRetry = attempt < effectiveMaxRetries;
-          msg = _finalizeErrorMessage(msg);
-          _logError(
-            error: msg,
-            url: url,
-            statusCode: null,
-          );
-        } else if (e.type == dio.DioExceptionType.badResponse) {
-          if (_customErrorHandler != null &&
-              e.response?.data is Map<String, dynamic>) {
-            final customMsg = _customErrorHandler!(
-                e.response!.data as Map<String, dynamic>,
-                e.response?.statusCode,
-                url);
-            // Ensure custom error handler doesn't return empty string
-            msg = (customMsg.trim().isNotEmpty)
-                ? customMsg.trim()
-                : 'Request failed (Status: ${e.response?.statusCode ?? 'unknown'})';
-          } else {
-            final extractedMsg = _extractErrorMessage(e.response?.data);
-            if (extractedMsg != null && extractedMsg.trim().isNotEmpty) {
-              msg = extractedMsg.trim();
-            } else {
-              final defaultMsg = (e.message?.trim().isNotEmpty == true)
-                  ? e.message!.trim()
-                  : 'Bad request';
-              msg = CustomExceptionHandlers(
-                      error: BadRequestException(defaultMsg, url))
-                  .getExceptionString();
+            if (resultOverlay && _globalErrorOverlayEnabled) {
+              LoadingStuff.showError(errorMsg);
             }
+            return Left(errorMsg);
           }
-          // Ensure error message is not empty
-          if (msg.trim().isEmpty) {
+        } on dio.DioException catch (e) {
+          if (shouldShowLoader) EasyLoading.dismiss();
+          String msg;
+          bool shouldRetry = false;
+          if (e.type == dio.DioExceptionType.connectionTimeout ||
+              e.type == dio.DioExceptionType.sendTimeout ||
+              e.type == dio.DioExceptionType.receiveTimeout) {
+            msg = CustomExceptionHandlers(
+                    error: ApiNotRespondingException('Request timeout', url))
+                .getExceptionString();
+            shouldRetry = attempt < effectiveMaxRetries;
+            msg = _finalizeErrorMessage(msg);
+            _logError(
+              error: msg,
+              url: url,
+              statusCode: null,
+            );
+          } else if (e.type == dio.DioExceptionType.badResponse) {
+            if (_customErrorHandler != null &&
+                e.response?.data is Map<String, dynamic>) {
+              final customMsg = _customErrorHandler!(
+                  e.response!.data as Map<String, dynamic>,
+                  e.response?.statusCode,
+                  url);
+              // Ensure custom error handler doesn't return empty string
+              msg = (customMsg.trim().isNotEmpty)
+                  ? customMsg.trim()
+                  : 'Request failed (Status: ${e.response?.statusCode ?? 'unknown'})';
+            } else {
+              final extractedMsg = _extractErrorMessage(e.response?.data);
+              if (extractedMsg != null && extractedMsg.trim().isNotEmpty) {
+                msg = extractedMsg.trim();
+              } else {
+                final defaultMsg = (e.message?.trim().isNotEmpty == true)
+                    ? e.message!.trim()
+                    : 'Bad request';
+                msg = CustomExceptionHandlers(
+                        error: BadRequestException(defaultMsg, url))
+                    .getExceptionString();
+              }
+            }
+            // Ensure error message is not empty
+            if (msg.trim().isEmpty) {
+              msg =
+                  'Request failed (Status: ${e.response?.statusCode ?? 'unknown'})';
+            }
             msg =
-                'Request failed (Status: ${e.response?.statusCode ?? 'unknown'})';
+                _finalizeErrorMessage(msg, statusCode: e.response?.statusCode);
+            _logError(
+              error: msg,
+              url: url,
+              statusCode: e.response?.statusCode,
+            );
+          } else if (e.type == dio.DioExceptionType.cancel) {
+            msg = 'Request was cancelled.';
+            msg = _finalizeErrorMessage(msg);
+            _logError(
+              error: msg,
+              url: url,
+              statusCode: null,
+            );
+          } else {
+            msg = CustomExceptionHandlers(
+                    error:
+                        FetchDataException(e.message ?? 'Network error', url))
+                .getExceptionString();
+            // Ensure error message is not empty
+            if (msg.isEmpty) {
+              msg =
+                  'Unable to connect to server. Please check your connection.';
+            }
+            msg = _finalizeErrorMessage(msg);
+            _logError(
+              error: msg,
+              url: url,
+              statusCode: null,
+            );
           }
-          msg = _finalizeErrorMessage(msg, statusCode: e.response?.statusCode);
-          _logError(
-            error: msg,
-            url: url,
-            statusCode: e.response?.statusCode,
-          );
-        } else if (e.type == dio.DioExceptionType.cancel) {
-          msg = 'Request was cancelled.';
-          msg = _finalizeErrorMessage(msg);
-          _logError(
-            error: msg,
-            url: url,
-            statusCode: null,
-          );
-        } else {
-          msg = CustomExceptionHandlers(
-                  error: FetchDataException(e.message ?? 'Network error', url))
-              .getExceptionString();
+          if (_customLogger != null) {
+            _customLogger!(e, e.stackTrace);
+          }
+          if (shouldRetry) {
+            attempt++;
+            _logWarning(
+                message:
+                    'Retrying request (attempt $attempt/$effectiveMaxRetries)...',
+                url: url);
+            await Future.delayed(effectiveRetryDelay);
+            continue;
+          }
+          if (resultOverlay && _globalErrorOverlayEnabled) {
+            LoadingStuff.showError(msg);
+          }
+          return Left(msg);
+        } on SocketException catch (e) {
+          if (shouldShowLoader) EasyLoading.dismiss();
+          var msg = CustomExceptionHandlers(error: e).getExceptionString();
           // Ensure error message is not empty
           if (msg.isEmpty) {
-            msg = 'Unable to connect to server. Please check your connection.';
+            msg =
+                'Network error: Unable to connect to server. Please check your internet connection.';
           }
           msg = _finalizeErrorMessage(msg);
           _logError(
@@ -1057,84 +1267,53 @@ class OneRequest {
             url: url,
             statusCode: null,
           );
-        }
-        if (_customLogger != null) {
-          _customLogger!(e, e.stackTrace);
-        }
-        if (shouldRetry) {
-          attempt++;
-          _logWarning(
-              message:
-                  'Retrying request (attempt $attempt/$effectiveMaxRetries)...',
-              url: url);
-          await Future.delayed(effectiveRetryDelay);
-          continue;
-        }
-        if (resultOverlay && _globalErrorOverlayEnabled) {
-          LoadingStuff.showError(msg);
-        }
-        return Right(msg);
-        } on SocketException catch (e) {
-        if (shouldShowLoader) EasyLoading.dismiss();
-        var msg = CustomExceptionHandlers(error: e).getExceptionString();
-        // Ensure error message is not empty
-        if (msg.isEmpty) {
-          msg =
-              'Network error: Unable to connect to server. Please check your internet connection.';
-        }
-        msg = _finalizeErrorMessage(msg);
-        _logError(
-          error: msg,
-          url: url,
-          statusCode: null,
-        );
-        if (_customLogger != null) {
-          _customLogger!(e, null);
-        }
-        if (resultOverlay && _globalErrorOverlayEnabled) {
-          LoadingStuff.showError(msg);
-        }
-        return Right(msg);
+          if (_customLogger != null) {
+            _customLogger!(e, null);
+          }
+          if (resultOverlay && _globalErrorOverlayEnabled) {
+            LoadingStuff.showError(msg);
+          }
+          return Left(msg);
         } on AppException catch (e) {
-        if (shouldShowLoader) EasyLoading.dismiss();
-        var msg = CustomExceptionHandlers(error: e).getExceptionString();
-        // Ensure error message is not empty
-        if (msg.isEmpty) {
-          msg = 'An error occurred while processing your request.';
-        }
-        msg = _finalizeErrorMessage(msg);
-        _logError(
-          error: msg,
-          url: url,
-          statusCode: null,
-        );
-        if (_customLogger != null) {
-          _customLogger!(e, null);
-        }
-        if (resultOverlay && _globalErrorOverlayEnabled) {
-          LoadingStuff.showError(msg);
-        }
-        return Right(msg);
+          if (shouldShowLoader) EasyLoading.dismiss();
+          var msg = CustomExceptionHandlers(error: e).getExceptionString();
+          // Ensure error message is not empty
+          if (msg.isEmpty) {
+            msg = 'An error occurred while processing your request.';
+          }
+          msg = _finalizeErrorMessage(msg);
+          _logError(
+            error: msg,
+            url: url,
+            statusCode: null,
+          );
+          if (_customLogger != null) {
+            _customLogger!(e, null);
+          }
+          if (resultOverlay && _globalErrorOverlayEnabled) {
+            LoadingStuff.showError(msg);
+          }
+          return Left(msg);
         } catch (e, stack) {
-        if (shouldShowLoader) EasyLoading.dismiss();
-        var msg = CustomExceptionHandlers(error: e).getExceptionString();
-        // Ensure error message is not empty
-        if (msg.isEmpty) {
-          msg = 'An unexpected error occurred: ${e.toString()}';
-        }
-        msg = _finalizeErrorMessage(msg);
-        _logError(
-          error: msg,
-          url: url,
-          statusCode: null,
-        );
-        if (_customLogger != null) {
-          _customLogger!(e, stack);
-        }
-        if (resultOverlay && _globalErrorOverlayEnabled) {
-          LoadingStuff.showError(msg);
-        }
-        return Right(msg);
+          if (shouldShowLoader) EasyLoading.dismiss();
+          var msg = CustomExceptionHandlers(error: e).getExceptionString();
+          // Ensure error message is not empty
+          if (msg.isEmpty) {
+            msg = 'An unexpected error occurred: ${e.toString()}';
+          }
+          msg = _finalizeErrorMessage(msg);
+          _logError(
+            error: msg,
+            url: url,
+            statusCode: null,
+          );
+          if (_customLogger != null) {
+            _customLogger!(e, stack);
+          }
+          if (resultOverlay && _globalErrorOverlayEnabled) {
+            LoadingStuff.showError(msg);
+          }
+          return Left(msg);
         }
       }
     } finally {
@@ -1148,13 +1327,13 @@ class OneRequest {
   /// Each item in [requests] is a map of parameters for the send method.
   /// Returns a list of results in the same order.
   /// Optionally, set [maxRetries] and [retryDelay] for exponential backoff on transient errors.
-  static Future<List<Either<T, String>>> batch<T extends Object?>(
+  static Future<List<Either<String, T>>> batch<T extends Object?>(
     List<Map<String, dynamic>> requests, {
     int maxRetries = 0,
     Duration retryDelay = const Duration(seconds: 1),
     bool exponentialBackoff = false,
   }) async {
-    Future<Either<T, String>> runWithRetry(Map<String, dynamic> params) async {
+    Future<Either<String, T>> runWithRetry(Map<String, dynamic> params) async {
       int attempt = 0;
       Duration delay = retryDelay;
       while (true) {
@@ -1191,7 +1370,7 @@ class OneRequest {
             }
             continue;
           }
-          return Right(e.toString());
+          return Left(e.toString());
         }
       }
     }
@@ -1200,61 +1379,7 @@ class OneRequest {
   }
 
   // Helper to extract error message from various response formats
-  String? _extractErrorMessage(dynamic data) {
-    if (data == null) return null;
-    if (data is String) {
-      final trimmed = data.trim();
-      if (trimmed.isEmpty) return null;
-      // Avoid dumping whole HTML or stack traces to end users.
-      if (trimmed.startsWith('<!DOCTYPE html') || trimmed.startsWith('<html')) {
-        return 'Server returned an unexpected response.';
-      }
-      return trimmed;
-    }
-    if (data is Map) {
-      // Try different common error message fields
-      if (data['message'] != null) {
-        final msg = data['message'].toString().trim();
-        if (msg.isNotEmpty) return msg;
-      }
-      if (data['error'] != null) {
-        final err = data['error'].toString().trim();
-        if (err.isNotEmpty) return err;
-      }
-      if (data['errors'] != null) {
-        final errors = data['errors'];
-        if (errors is List && errors.isNotEmpty) {
-          final firstItem = errors.first;
-          if (firstItem is Map && firstItem.isNotEmpty) {
-            final first = firstItem.values.first.toString().trim();
-            if (first.isNotEmpty) return first;
-          }
-          final first = firstItem.toString().trim();
-          if (first.isNotEmpty) return first;
-        } else if (errors is Map && errors.isNotEmpty) {
-          final value = errors.values.first;
-          if (value is List && value.isNotEmpty) {
-            final first = value.first.toString().trim();
-            if (first.isNotEmpty) return first;
-          }
-          final first = value.toString().trim();
-          if (first.isNotEmpty) return first;
-        } else {
-          final errStr = errors.toString().trim();
-          if (errStr.isNotEmpty) return errStr;
-        }
-      }
-      if (data['detail'] != null) {
-        final detail = data['detail'].toString().trim();
-        if (detail.isNotEmpty) return detail;
-      }
-    }
-    if (data is List && data.isNotEmpty) {
-      final first = data.first.toString().trim();
-      return first.isEmpty ? null : first;
-    }
-    return null;
-  }
+  String? _extractErrorMessage(dynamic data) => RestErrorParser.fromData(data);
 
   // Helper to build a cache key from URL and query params
   String _buildCacheKey(String url, Map<String, dynamic>? query) {

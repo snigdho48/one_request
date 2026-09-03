@@ -1,3 +1,6 @@
+@TestOn('vm')
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:one_request/one_request.dart';
@@ -112,8 +115,8 @@ class _TestRequestWidgetState extends State<TestRequestWidget> {
     );
 
     response.fold(
-      (data) => setState(() => result = data['fact'] ?? 'No fact'),
-      (error) => setState(() => result = 'error: $error'),
+      ifRight: (data) => setState(() => result = data['fact'] ?? 'No fact'),
+      ifLeft: (error) => setState(() => result = 'error: $error'),
     );
   }
 

@@ -1,0 +1,25 @@
+---
+description: one_request is modular. The consuming app can turn off or replace every feature.
+alwaysApply: true
+---
+
+# App flexibility (non-negotiable)
+
+one_request is a toolkit, not a locked pipeline. The Flutter app that depends on it must be able to turn off, skip, or replace every feature from `main` / its own API setup.
+
+## Keep these knobs
+
+- `configure(...)` — every field optional; omit = leave unchanged
+- Overlays: `enableLoader` / `enableErrorOverlay` / `enableSuccessOverlay`, plus per-request `loader` / `resultOverlay`
+- Logging: off by default; `setErrorLoggerEnabled` / `setResponseLoggerEnabled`
+- Errors: `setErrorHandler` (additive), `clearErrorHandler()`, `resetErrorHandler()`
+- Auth: `setAuth` is optional; `clearAuth()` removes it; apps may still pass headers / interceptors
+- Loading UI: `loadingconfig` / `wrap` / `initLoading` are optional. Do not auto-theme EasyLoading from `configure()`
+- API style: keep both `send<T>()` (Either) and `request<T>()` (throws). Do not delete Either
+- Per-request: headers, interceptors, timeout, retries, cache, cancel token, `innerData` / `unwrap`
+
+## When adding features
+
+- Default to **off** or **overridable**. Never require a new call in the consuming app.
+- Do not remove or hard-code over an existing app callback (error handler, token readers, overlay builders).
+- Helpers (`setAuth`, `wrap`, `RestErrorParser`) are shortcuts, not the only path.
