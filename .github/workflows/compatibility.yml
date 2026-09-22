@@ -15,6 +15,10 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: flutter analyze
+      - run: flutter pub get
+        working-directory: example
+      - run: flutter analyze
+        working-directory: example
       - run: flutter test
 
   web:
@@ -26,4 +30,4 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: flutter test --platform chrome test/one_request_platform_test.dart test/one_request_unit_test.dart
+      - run: flutter test -d chrome test/one_request_platform_test.dart test/one_request_unit_test.dart test/one_socket_test.dart test/one_connectivity_test.dart

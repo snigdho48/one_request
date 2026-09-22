@@ -2,6 +2,82 @@
 
 ## [Unreleased]
 
+### Fixed — 2026-09-22
+
+**Time:** 2026-09-22 12:04 (UTC+6)
+**Author:** Cursor agent
+**Issue:** n/a
+
+**Summary:** Give the example its own flutter_lints so `dart format .` can resolve analysis_options.yaml.
+
+**Files:**
+- `example/pubspec.yaml` — `flutter_lints` dev_dependency
+- `example/analysis_options.yaml` — include flutter.yaml
+
+**Impact:** none
+
+### Added — 2026-09-22
+
+**Time:** 2026-09-22 12:00 (UTC+6)
+**Author:** Cursor agent
+**Issue:** n/a
+
+**Summary:** Multiple HTTP/WebSocket services per app — instance baseUrl, socket baseUrl override, absolute URLs never prefixed.
+
+**Files:**
+- `lib/src/resolve_url.dart` — `resolveRequestUrl` / `isAbsoluteNetworkUrl`
+- `lib/src/dio_request.dart` — `OneRequest(baseUrl, headers)`, `openSocket`, `socket(baseUrl:)`
+- `README.md`, `example/lib/main.dart`, tests, flexibility/plugin docs
+
+**Impact:** API
+
+### Changed — 2026-09-22
+
+**Time:** 2026-09-22 11:50 (UTC+6)
+**Author:** Cursor agent
+**Issue:** n/a
+
+**Summary:** Raise connectivity_plus lower bound to 7.1.0 so pana downgrade analysis recognizes ConnectivityResult.satellite.
+
+**Files:**
+- `pubspec.yaml` — `connectivity_plus: ^7.1.0`
+- `tool/check_compatibility.ps1`, `.github/workflows/compatibility.yml` — Chrome via `-d chrome`
+
+**Impact:** API / none
+
+### Changed — 2026-09-21
+
+**Time:** 2026-09-21 20:15 (UTC+6)
+**Author:** Cursor agent
+**Issue:** n/a
+
+**Summary:** Documented every public knob in README, expanded the Flutter example, and extended VM/Chrome compatibility (including example analyze).
+
+**Files:**
+- `README.md` — full configure / HTTP / socket / connectivity API
+- `example/lib/main.dart`, `example/pubspec.yaml` — runnable demo
+- `tool/check_compatibility.ps1`, `.github/workflows/compatibility.yml` — Chrome socket + connectivity tests
+- `pubspec.yaml` — topics + description
+
+**Impact:** none
+
+### Added — 2026-09-21
+
+**Time:** 2026-09-21 19:50 (UTC+6)
+**Author:** Cursor agent
+**Issue:** n/a
+
+**Summary:** Optional WebSocket client and optional connectivity_plus snackbar/popover/banner (all off or overridable).
+
+**Files:**
+- `lib/src/socket/` — `OneSocket` connect/send/listen/close, JSON, reconnect opt-in
+- `lib/src/connectivity/` — watch + snackbar/popover/banner/custom/none
+- `lib/src/dio_request.dart` — `socket()`, `setConnectivity()`, `wrap()` host
+- `test/one_socket_test.dart`, `test/one_connectivity_test.dart`
+- `README.md`, `CHANGELOG.md`, `cursor-plugin/`, `.cursor/rules/app-flexibility.mdc`
+
+**Impact:** API / none
+
 ### Changed — 2026-09-03
 
 **Time:** 2026-09-03 19:00 (UTC+6)

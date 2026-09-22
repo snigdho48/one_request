@@ -8,7 +8,7 @@ When an agent sees `CancelToken` / `Interceptor` / `Either`, it often runs `flut
 
 - Always-on rule: never add those packages; import only `package:one_request/one_request.dart`
 - Skill + `/one-request-setup` command for configure / JWT / wrap
-- Shell hook that **denies** `pub add dio|dart_either|either_dart|flutter_easyloading` when `one_request` is present
+- Shell hook that **denies** `pub add dio|dart_either|either_dart|flutter_easyloading|web_socket_channel|connectivity_plus` when `one_request` is present
 
 ## Install (local, immediate)
 

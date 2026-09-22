@@ -7,11 +7,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:logging/logging.dart';
 import 'auth/auth_interceptor.dart';
+import 'connectivity/connectivity_notice_host.dart';
+import 'connectivity/connectivity_watch.dart';
 import 'model/error.dart';
 import 'model/request_exception.dart';
 import 'platform/io_types.dart';
+import 'resolve_url.dart';
 import 'resourses/types.dart';
 import 'resourses/utils.dart';
+import 'socket/one_socket.dart';
 
 typedef ErrorHandler = String Function(
     Map<String, dynamic> errorBody, int? statusCode, String? url);
@@ -19,8 +23,28 @@ typedef ErrorLogger = void Function(Object error, StackTrace? stackTrace);
 
 // ignore: camel_case_types
 class OneRequest {
+  /// Optional per-service client. Omit [baseUrl] / [headers] to use
+  /// [configure]. One app can hold many instances (shop API, chat API, …).
+  OneRequest({
+    this.baseUrl,
+    this.headers,
+  });
+
+  /// Per-instance HTTP / relative-socket prefix. `null` → [configure] `baseUrl`.
+  final String? baseUrl;
+
+  /// Per-instance headers. Merged after [configure] headers, before per-call.
+  final Map<String, String>? headers;
+
   static String? _baseUrl;
   static Map<String, String>? _globalHeaders;
+
+  String? get _effectiveBaseUrl => baseUrl ?? _baseUrl;
+
+  Map<String, String> get _effectiveHeaders => <String, String>{
+        if (_globalHeaders != null) ..._globalHeaders!,
+        if (headers != null) ...headers!,
+      };
 
   // Global overlay settings
   static bool _globalLoaderEnabled = true;
@@ -73,6 +97,19 @@ class OneRequest {
     Duration? defaultRetryDelay,
     int? defaultMaxRedirects,
     bool? defaultUseCache,
+    bool? enableWebSocket,
+    bool? wsAutoReconnect,
+    bool? wsEncodeJson,
+    bool? wsDecodeJson,
+    int? wsMaxReconnectAttempts,
+    Duration? wsReconnectDelay,
+    bool? enableConnectivity,
+    ConnectivityUi? connectivityUi,
+    bool? showOfflineNotice,
+    bool? showOnlineNotice,
+    String? offlineMessage,
+    String? onlineMessage,
+    Duration? connectivityNoticeDuration,
   }) {
     if (baseUrl != null) {
       _baseUrl = baseUrl;
@@ -137,6 +174,33 @@ class OneRequest {
     if (defaultUseCache != null) {
       _defaultUseCache = defaultUseCache;
     }
+    if (enableWebSocket != null) {
+      OneSocket.setEnabled(enableWebSocket);
+    }
+    OneSocket.configureDefaults(
+      autoReconnect: wsAutoReconnect,
+      encodeJson: wsEncodeJson,
+      decodeJson: wsDecodeJson,
+      maxReconnectAttempts: wsMaxReconnectAttempts,
+      reconnectDelay: wsReconnectDelay,
+    );
+    if (enableConnectivity != null ||
+        connectivityUi != null ||
+        showOfflineNotice != null ||
+        showOnlineNotice != null ||
+        offlineMessage != null ||
+        onlineMessage != null ||
+        connectivityNoticeDuration != null) {
+      ConnectivityWatch.configure(
+        enabled: enableConnectivity,
+        ui: connectivityUi,
+        showOffline: showOfflineNotice,
+        showOnline: showOnlineNotice,
+        offlineMessage: offlineMessage,
+        onlineMessage: onlineMessage,
+        noticeDuration: connectivityNoticeDuration,
+      );
+    }
     _updateLoggerEnabled();
   }
 
@@ -176,6 +240,8 @@ class OneRequest {
       'sanitizeErrorMessages': _sanitizeErrorMessages,
       'showStatusCodeInError': _showStatusCodeInError,
       'defaultUseCache': _defaultUseCache,
+      'webSocket': OneSocket.isEnabled,
+      'connectivity': ConnectivityWatch.isEnabled,
     };
   }
 
@@ -242,8 +308,137 @@ class OneRequest {
     _defaultRetryDelay = const Duration(seconds: 1);
     _defaultMaxRedirects = 1;
     _defaultUseCache = false;
+    OneSocket.resetConfig();
+    ConnectivityWatch.resetConfig();
     clearAuth();
   }
+
+  /// Optional WebSocket. Each call returns a new [OneSocket] — hold as many
+  /// as you need, on any host. [url] may be `ws://` / `wss://` / `http(s)://`
+  /// or a path resolved against [baseUrl] (this call) → instance [OneRequest.baseUrl]
+  /// → [configure] `baseUrl`. Disable with [configure] `enableWebSocket: false`.
+  static OneSocket socket({
+    required String url,
+    String? baseUrl,
+    Map<String, String>? headers,
+    Iterable<String>? protocols,
+    Duration? pingInterval,
+    Duration? connectTimeout,
+    bool? autoReconnect,
+    int? maxReconnectAttempts,
+    Duration? reconnectDelay,
+    bool? encodeJson,
+    bool? decodeJson,
+    void Function(dynamic message)? onMessage,
+    void Function(SocketState state)? onState,
+    void Function(Object error, StackTrace stackTrace)? onError,
+  }) {
+    return OneRequest(baseUrl: baseUrl).openSocket(
+      url: url,
+      baseUrl: baseUrl,
+      headers: headers,
+      protocols: protocols,
+      pingInterval: pingInterval,
+      connectTimeout: connectTimeout,
+      autoReconnect: autoReconnect,
+      maxReconnectAttempts: maxReconnectAttempts,
+      reconnectDelay: reconnectDelay,
+      encodeJson: encodeJson,
+      decodeJson: decodeJson,
+      onMessage: onMessage,
+      onState: onState,
+      onError: onError,
+    );
+  }
+
+  /// Same as [socket], using this instance's [baseUrl] / [headers].
+  OneSocket openSocket({
+    required String url,
+    String? baseUrl,
+    Map<String, String>? headers,
+    Iterable<String>? protocols,
+    Duration? pingInterval,
+    Duration? connectTimeout,
+    bool? autoReconnect,
+    int? maxReconnectAttempts,
+    Duration? reconnectDelay,
+    bool? encodeJson,
+    bool? decodeJson,
+    void Function(dynamic message)? onMessage,
+    void Function(SocketState state)? onState,
+    void Function(Object error, StackTrace stackTrace)? onError,
+  }) {
+    return OneSocket.connect(
+      url: url,
+      baseUrl: baseUrl ?? _effectiveBaseUrl,
+      headers: headers,
+      globalHeaders: _effectiveHeaders.isEmpty ? null : _effectiveHeaders,
+      protocols: protocols,
+      pingInterval: pingInterval,
+      connectTimeout: connectTimeout,
+      autoReconnect: autoReconnect,
+      maxReconnectAttempts: maxReconnectAttempts,
+      reconnectDelay: reconnectDelay,
+      encodeJson: encodeJson,
+      decodeJson: decodeJson,
+      onMessage: onMessage,
+      onState: onState,
+      onError: onError,
+    );
+  }
+
+  static bool isWebSocketEnabled() => OneSocket.isEnabled;
+
+  /// Opt into connectivity_plus notices. Off until you call this or
+  /// [configure] with `enableConnectivity: true`. Pass [ui] / a [builder] /
+  /// `ui: ConnectivityUi.none` to choose (or skip) the default snackbar.
+  static void setConnectivity({
+    bool enabled = true,
+    ConnectivityUi? ui,
+    bool? showOffline,
+    bool? showOnline,
+    String? offlineMessage,
+    String? onlineMessage,
+    Duration? noticeDuration,
+    ConnectivityBuilder? builder,
+    ConnectivityChanged? onChanged,
+    bool clearBuilder = false,
+    bool clearOnChanged = false,
+  }) {
+    ConnectivityWatch.configure(
+      enabled: enabled,
+      ui: ui,
+      showOffline: showOffline,
+      showOnline: showOnline,
+      offlineMessage: offlineMessage,
+      onlineMessage: onlineMessage,
+      noticeDuration: noticeDuration,
+      builder: builder,
+      onChanged: onChanged,
+      clearBuilder: clearBuilder,
+      clearOnChanged: clearOnChanged,
+    );
+  }
+
+  /// Stop watching and drop custom builders / callbacks.
+  static void clearConnectivity() => ConnectivityWatch.disable();
+
+  static bool isConnectivityEnabled() => ConnectivityWatch.isEnabled;
+
+  static ConnectivityUi get connectivityUi => ConnectivityWatch.ui;
+
+  static ConnectivityStatus get connectivityStatus =>
+      ConnectivityWatch.instance.status;
+
+  static Stream<ConnectivityStatus> get connectivity =>
+      ConnectivityWatch.instance.statuses;
+
+  static Future<ConnectivityStatus> checkConnectivity() =>
+      ConnectivityWatch.instance.checkOnce();
+
+  /// Use when you skip [wrap] but still want the default connectivity overlay.
+  static Widget connectivityOverlay({required Widget child}) =>
+      ConnectivityNoticeHost(child: child);
 
   // ignore: non_constant_identifier_names
   // initializer
@@ -263,8 +458,13 @@ class OneRequest {
   static TransitionBuilder wrap([TransitionBuilder? overlay]) {
     _ensureLoadingConfig();
     final loading = LoadingStuff.initLoading;
-    if (overlay == null) return loading;
-    return (context, child) => overlay(context, loading(context, child));
+    return (context, child) {
+      Widget built = loading(context, child);
+      if (overlay != null) {
+        built = overlay(context, built);
+      }
+      return ConnectivityNoticeHost(child: built);
+    };
   }
 
   static void _ensureLoadingConfig() {
@@ -907,19 +1107,13 @@ class OneRequest {
     final int effectiveMaxRedirects = maxRedirects ?? _defaultMaxRedirects;
     final bool effectiveUseCache = useCache ?? _defaultUseCache;
 
-    // Apply global config
-    if (_baseUrl != null) {
-      url = _baseUrl! + url;
-    }
+    url = resolveRequestUrl(url, baseUrl: _effectiveBaseUrl);
 
-    // Merge headers: global headers first, then per-request headers (per-request overrides global)
-    Map<String, String> finalHeaders = {};
-    if (_globalHeaders != null) {
-      finalHeaders.addAll(_globalHeaders!);
-    }
-    if (header != null) {
-      finalHeaders.addAll(header); // Per-request headers override global
-    }
+    // Merge: configure headers → instance headers → per-request (last wins)
+    Map<String, String> finalHeaders = {
+      ..._effectiveHeaders,
+      if (header != null) ...header,
+    };
 
     // Set default headers if none provided
     if (finalHeaders.isEmpty) {

@@ -11,6 +11,7 @@ class _JsonAdapter implements HttpClientAdapter {
 
   final int status;
   final String body;
+  final List<Uri> uris = <Uri>[];
 
   @override
   Future<ResponseBody> fetch(
@@ -18,6 +19,7 @@ class _JsonAdapter implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
+    uris.add(options.uri);
     return ResponseBody.fromString(
       body,
       status,
@@ -113,6 +115,43 @@ void main() {
       resultOverlay: false,
     );
     expect(data['fact'], 'ok');
+  });
+
+  test('absolute HTTP urls ignore configure baseUrl', () async {
+    OneRequest.configure(baseUrl: 'https://api.example.com');
+    final adapter = _JsonAdapter(200, '{"ok":true}');
+    OneRequest.client.httpClientAdapter = adapter;
+    await OneRequest().send<Map<String, dynamic>>(
+      url: 'https://pay.example.com/charge',
+      method: RequestType.GET,
+      loader: false,
+      resultOverlay: false,
+    );
+    expect(adapter.uris.single.toString(), 'https://pay.example.com/charge');
+  });
+
+  test('instance baseUrl is independent of configure baseUrl', () async {
+    OneRequest.configure(baseUrl: 'https://api.example.com');
+    final adapter = _JsonAdapter(200, '{"ok":true}');
+    OneRequest.client.httpClientAdapter = adapter;
+    final shop = OneRequest(baseUrl: 'https://shop.example.com');
+    final catalog = OneRequest(baseUrl: 'https://catalog.example.com');
+    await shop.send<Map<String, dynamic>>(
+      url: '/orders',
+      method: RequestType.GET,
+      loader: false,
+      resultOverlay: false,
+    );
+    await catalog.send<Map<String, dynamic>>(
+      url: '/items',
+      method: RequestType.GET,
+      loader: false,
+      resultOverlay: false,
+    );
+    expect(adapter.uris.map((u) => u.toString()).toList(), [
+      'https://shop.example.com/orders',
+      'https://catalog.example.com/items',
+    ]);
   });
 
   test('send returns Left on HTTP error on this platform', () async {

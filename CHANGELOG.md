@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.1.0 - 2026-09-21
+
+### Added
+
+- Optional WebSocket via `OneRequest.socket()` / `OneSocket` (`web_socket_channel`). Nothing connects until you call it. `configure(enableWebSocket: false)` hard-disables. JSON encode/decode on by default; `autoReconnect` off by default.
+- Optional connectivity notices via `connectivity_plus`. Off until `setConnectivity()` or `configure(enableConnectivity: true)`. Default UI is snackbar; choose `ConnectivityUi.popover`, `banner`, `none`, or a custom `builder`. `clearConnectivity()` turns it off.
+- `OneRequest.connectivityOverlay` for apps that skip `wrap()` / EasyLoading.
+
+### Fixed
+
+- Example app includes `flutter_lints` so `dart format .` no longer warns about an unresolved `analysis_options.yaml`.
+
+### Changed
+
+- README lists every optional HTTP, WebSocket, and connectivity knob; example app demonstrates toggling them.
+- Compatibility script and CI also analyze the example and run socket/connectivity tests on Chrome (`flutter test -d chrome`).
+- Require `connectivity_plus` `^7.1.0` so the `satellite` network kind exists at the constraint lower bound (pub points).
+- `configure(baseUrl:)` prefixes **relative** paths only. Absolute `http(s)://` / `ws(s)://` URLs are left alone so a second service is not concatenated onto the first.
+
+### Added
+
+- `OneRequest(baseUrl:, headers:)` for one client per backend. `openSocket()` uses that instance. `OneRequest.socket(baseUrl:)` overrides the default without changing HTTP config. Multiple `OneSocket` instances can stay open on different hosts.
+
 ## 3.0.0 - 2026-09-03
 
 ### Breaking changes

@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { stdin } from "node:process";
 
 const ALLOW = { permission: "allow" };
-const BLOCKED = /\b(dio|dart_either|either_dart|flutter_easyloading)\b/;
+const BLOCKED = /\b(dio|dart_either|either_dart|flutter_easyloading|web_socket_channel|connectivity_plus)\b/;
 
 function reply(payload) {
   process.stdout.write(`${JSON.stringify(payload)}\n`);
@@ -89,9 +89,9 @@ async function main() {
     reply({
       permission: "deny",
       agent_message:
-        "Do not add dio, dart_either, either_dart, or flutter_easyloading. one_request already depends on them and re-exports CancelToken, Interceptor, FormData, MultipartFile, Either, and EasyLoading types. Run `flutter pub add one_request` only, then `import 'package:one_request/one_request.dart';`.",
+        "Do not add dio, dart_either, either_dart, flutter_easyloading, web_socket_channel, or connectivity_plus. one_request already depends on them. Run `flutter pub add one_request` only, then `import 'package:one_request/one_request.dart';`.",
       user_message:
-        "Blocked extra HTTP packages. one_request already includes dio and dart_either.",
+        "Blocked extra packages. one_request already includes dio, dart_either, web_socket_channel, and connectivity_plus.",
     });
   } catch {
     reply(ALLOW);

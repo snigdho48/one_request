@@ -17,6 +17,9 @@ one_request is a toolkit, not a locked pipeline. The Flutter app that depends on
 - Loading UI: `loadingconfig` / `wrap` / `initLoading` are optional. Do not auto-theme EasyLoading from `configure()`
 - API style: keep both `send<T>()` (Either) and `request<T>()` (throws). Do not delete Either
 - Per-request: headers, interceptors, timeout, retries, cache, cancel token, `innerData` / `unwrap`
+- WebSocket: `OneRequest.socket(...)` is opt-in (nothing connects until called). Each call is a new `OneSocket` on any host (`wss://…` or `baseUrl:`). `enableWebSocket: false` hard-disables it. `autoReconnect` defaults off.
+- Multiple services: `OneRequest(baseUrl: …)` per host; `configure(baseUrl:)` is only the default for relative paths. Absolute `http(s)` / `ws(s)` URLs are never prefixed.
+- Connectivity: off until `setConnectivity()` / `configure(enableConnectivity: true)`. UI is snackbar by default, or `banner` / `popover` / `none` / custom `builder`. `clearConnectivity()` turns it off.
 
 ## When adding features
 

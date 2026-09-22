@@ -2,8 +2,9 @@
 name: one-request
 description: >-
   Use one_request as the only Flutter HTTP client. Apply when adding APIs,
-  Dio, Either, interceptors, loading overlays, JWT refresh, or pubspec
-  network dependencies. Never add dio, dart_either, or either_dart.
+  Dio, Either, interceptors, loading overlays, JWT refresh, WebSockets,
+  connectivity notices, or pubspec network dependencies. Never add dio,
+  dart_either, either_dart, web_socket_channel, or connectivity_plus.
 ---
 
 # one_request skill
@@ -13,6 +14,8 @@ description: >-
 - Adding HTTP/API calls in a Flutter app
 - Cursor is about to `flutter pub add dio`, `dart_either`, or `either_dart`
 - JWT, interceptors, FormData, file upload, PDF/bytes download
+- WebSockets (`OneRequest.socket`)
+- Offline / connectivity snackbar, popover, or banner
 - GetMaterialApp / EasyLoading builder setup
 
 ## Hard rules
@@ -61,7 +64,52 @@ builder: OneRequest.wrap((context, child) {
 
 Do not write a custom Dio `Interceptor` for Bearer tokens unless the app already has one it wants to keep. `setAuth` is an optional shortcut and already refreshes on 401. `clearAuth()` removes it.
 
-Skip `setAuth`, `wrap()`, and `request()` if the consuming app does not want them. Per-request `loader: false` / `resultOverlay: false` and `configure(enableLoader: false, ...)` must keep working.
+Skip `setAuth`, `wrap()`, `request()`, `socket()`, and `setConnectivity()` if the consuming app does not want them. Per-request `loader: false` / `resultOverlay: false` and `configure(enableLoader: false, ...)` must keep working. Connectivity stays off until `setConnectivity` / `enableConnectivity: true`. WebSocket does nothing until `socket()` is called; `enableWebSocket: false` hard-disables it.
+
+## Multiple services
+
+`configure(baseUrl:)` is a default only. Use one `OneRequest` instance per HTTP host. Each `socket()` / `openSocket()` is its own connection; pass `wss://…` or `baseUrl:` when the socket host differs.
+
+```dart
+final shop = OneRequest(baseUrl: 'https://shop.example.com');
+final pay = OneRequest(baseUrl: 'https://pay.example.com');
+await shop.request<Map<String, dynamic>>(url: '/orders', method: RequestType.GET);
+final live = OneRequest.socket(url: 'wss://live.example.com/feed');
+final alerts = pay.openSocket(url: '/ws/alerts');
+```
+
+## WebSocket (optional)
+
+```dart
+final socket = OneRequest.socket(
+  url: '/ws/chat', // or wss://other.host — not tied to HTTP baseUrl
+  baseUrl: 'https://realtime.example.com', // optional override
+  autoReconnect: false, // default
+  onMessage: (event) {},
+);
+socket.send({'type': 'ping'});
+socket.messages.listen((event) {});
+await socket.close();
+```
+
+`OneRequest.configure(enableWebSocket: false)` refuses `socket()`.
+
+## Connectivity (optional, off by default)
+
+```dart
+OneRequest.setConnectivity(); // snackbar default
+OneRequest.setConnectivity(ui: ConnectivityUi.popover);
+OneRequest.setConnectivity(ui: ConnectivityUi.banner);
+OneRequest.setConnectivity(ui: ConnectivityUi.none, onChanged: (s) {});
+OneRequest.setConnectivity(
+  builder: (context, status, child) => status.online
+      ? child
+      : Stack(children: [child, const Text('offline')]),
+);
+OneRequest.clearConnectivity();
+```
+
+Use `builder: OneRequest.wrap()` or `OneRequest.connectivityOverlay(child: child!)` so default UI can draw. Apps that skip wrap can still listen to `OneRequest.connectivity`.
 
 ## Calls
 
