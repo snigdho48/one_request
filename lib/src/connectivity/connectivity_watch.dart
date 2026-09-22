@@ -7,7 +7,7 @@ import 'plus_source.dart';
 
 export 'connectivity_types.dart';
 
-/// Optional connectivity_plus watcher. Off until [configure] / [OneRequest.setConnectivity].
+/// Optional connectivity watcher. Off until [configure] / [OneRequest.setConnectivity].
 class ConnectivityWatch extends ChangeNotifier {
   ConnectivityWatch._();
 

@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+### Changed — 2026-09-22
+
+**Time:** 2026-09-22 13:30 (UTC+6)
+**Author:** Cursor agent
+**Issue:** n/a
+
+**Summary:** `dart pub upgrade --tighten` — lockfile already newest resolvable; three pubspec lower bounds matched locked versions.
+
+**Files:**
+- `pubspec.yaml` — tightened three hosted constraints
+
+**Impact:** none
+
+### Changed — 2026-09-22
+
+**Time:** 2026-09-22 12:45 (UTC+6)
+**Author:** Cursor agent
+**Issue:** n/a
+
+**Summary:** Stop naming internal HTTP/socket/connectivity packages in user-facing changelog and README.
+
+**Files:**
+- `CHANGELOG.md` — drop dependency package names
+- `README.md`, `lib/one_request.dart` — “add only one_request”
+
+**Impact:** none
+
 ### Fixed — 2026-09-22
 
 **Time:** 2026-09-22 12:04 (UTC+6)
@@ -37,10 +64,10 @@
 **Author:** Cursor agent
 **Issue:** n/a
 
-**Summary:** Raise connectivity_plus lower bound to 7.1.0 so pana downgrade analysis recognizes ConnectivityResult.satellite.
+**Summary:** Raise the connectivity plugin lower bound so the satellite network kind exists for pub lower-bound analysis.
 
 **Files:**
-- `pubspec.yaml` — `connectivity_plus: ^7.1.0`
+- `pubspec.yaml` — connectivity constraint 7.1.0+
 - `tool/check_compatibility.ps1`, `.github/workflows/compatibility.yml` — Chrome via `-d chrome`
 
 **Impact:** API / none
@@ -67,7 +94,7 @@
 **Author:** Cursor agent
 **Issue:** n/a
 
-**Summary:** Optional WebSocket client and optional connectivity_plus snackbar/popover/banner (all off or overridable).
+**Summary:** Optional WebSocket client and optional connectivity snackbar/popover/banner (all off or overridable).
 
 **Files:**
 - `lib/src/socket/` — `OneSocket` connect/send/listen/close, JSON, reconnect opt-in

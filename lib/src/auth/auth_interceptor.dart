@@ -5,7 +5,7 @@ typedef TokenWriter = Future<void> Function(String access, String refresh);
 
 /// Bearer auth + single-flight refresh on 401.
 ///
-/// Attach via [OneRequest.setAuth] — do not add `dio` to the app pubspec.
+/// Attach via [OneRequest.setAuth]. Add only `one_request` to the app pubspec.
 class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     required this.getAccessToken,

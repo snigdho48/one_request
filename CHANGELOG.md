@@ -4,8 +4,8 @@
 
 ### Added
 
-- Optional WebSocket via `OneRequest.socket()` / `OneSocket` (`web_socket_channel`). Nothing connects until you call it. `configure(enableWebSocket: false)` hard-disables. JSON encode/decode on by default; `autoReconnect` off by default.
-- Optional connectivity notices via `connectivity_plus`. Off until `setConnectivity()` or `configure(enableConnectivity: true)`. Default UI is snackbar; choose `ConnectivityUi.popover`, `banner`, `none`, or a custom `builder`. `clearConnectivity()` turns it off.
+- Optional WebSocket via `OneRequest.socket()` / `OneSocket`. Nothing connects until you call it. `configure(enableWebSocket: false)` hard-disables. JSON encode/decode on by default; `autoReconnect` off by default.
+- Optional connectivity notices. Off until `setConnectivity()` or `configure(enableConnectivity: true)`. Default UI is snackbar; choose `ConnectivityUi.popover`, `banner`, `none`, or a custom `builder`. `clearConnectivity()` turns it off.
 - `OneRequest.connectivityOverlay` for apps that skip `wrap()` / EasyLoading.
 
 ### Fixed
@@ -16,7 +16,7 @@
 
 - README lists every optional HTTP, WebSocket, and connectivity knob; example app demonstrates toggling them.
 - Compatibility script and CI also analyze the example and run socket/connectivity tests on Chrome (`flutter test -d chrome`).
-- Require `connectivity_plus` `^7.1.0` so the `satellite` network kind exists at the constraint lower bound (pub points).
+- Raised three dependency lower bounds to the versions this package already resolves (`dart pub upgrade --tighten`).
 - `configure(baseUrl:)` prefixes **relative** paths only. Absolute `http(s)://` / `ws(s)://` URLs are left alone so a second service is not concatenated onto the first.
 
 ### Added
@@ -27,7 +27,6 @@
 
 ### Breaking changes
 
-- Replaced `either_dart` with `dart_either` `^2.3.0`.
 - `send` and `batch` now return `Either<String, T>`: **Left** is the error, **Right** is the data.
 - `fold` uses named callbacks: `fold(ifLeft: ..., ifRight: ...)`.
 - Use `getOrNull()` / `leftOrNull()` instead of `.left` / `.right`.
@@ -38,19 +37,18 @@
 - `OneRequest.request<T>()` — returns data or throws `RequestException`.
 - `RequestException` and `RestErrorParser` for Django REST / JSON payloads (`error`, `detail`, `details`, `code`, `data`).
 - `OneRequest.setAuth(...)` — optional JWT header + single-flight refresh on 401.
-- `OneRequest.wrap()` — optional EasyLoading builder for `MaterialApp` / `GetMaterialApp`.
+- `OneRequest.wrap()` — optional loading overlay builder for `MaterialApp` / `GetMaterialApp`.
 - `fileFromPath`, `fileFromByte`, `fileFormString`, `unwrapPayload`, `innerData`, `OneRequest.client`.
 - `clearErrorHandler()` and additive `setErrorHandler` (`clearHandler` / `clearLogger`).
-- Re-exports Dio, Either, and EasyLoading types from `package:one_request/one_request.dart` (do not add those packages yourself).
+- HTTP, socket, and overlay types come from `package:one_request/one_request.dart` — add only `one_request`.
 - Runs on Android, iOS, web, Windows, macOS, and Linux.
 
 ### Changed
 
 - Default error handler is `RestErrorParser.handler` (replace or clear from the app).
-- Global interceptors from `configure()` attach once on the shared Dio client.
+- Global interceptors from `configure()` attach once on the shared HTTP client.
 - Loading UI is initialized only when you use `wrap` / `initLoading`, or when a request actually shows a loader/overlay.
 - `file()` and `fileFromPath()` require `dart:io` (mobile/desktop). On web use `fileFromByte` or `fileFormString`.
-- Dependencies: `dio` `^5.11.0`, `flutter_easyloading` `^4.0.2`, `dart_either` `^2.3.0`.
 - SDK `>=3.6.0`, Flutter `>=3.27.0`.
 
 ## 2.3.0 - 2026-05-17

@@ -389,7 +389,7 @@ class OneRequest {
 
   static bool isWebSocketEnabled() => OneSocket.isEnabled;
 
-  /// Opt into connectivity_plus notices. Off until you call this or
+  /// Opt into connectivity notices. Off until you call this or
   /// [configure] with `enableConnectivity: true`. Pass [ui] / a [builder] /
   /// `ui: ConnectivityUi.none` to choose (or skip) the default snackbar.
   static void setConnectivity({

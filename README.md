@@ -13,13 +13,13 @@ dependencies:
 import 'package:one_request/one_request.dart';
 ```
 
-Do **not** add `dio`, `dart_either`, `flutter_easyloading`, `web_socket_channel`, or `connectivity_plus`. Those packages are already inside `one_request`. `ResponseType` is this package’s enum (`json` / `bytes` / `stream` / `plain`).
+Add only `one_request`. Import `package:one_request/one_request.dart` and use the types from there. `ResponseType` is this package’s enum (`json` / `bytes` / `stream` / `plain`).
 
 | You can use | You can skip / turn off |
 |---|---|
 | `request<T>()` (throws) | Use `send<T>()` (`Either`) instead |
 | `send<T>()` + `fold` | Use `request<T>()` instead |
-| EasyLoading via `wrap()` | Own `MaterialApp.builder`; `enableLoader: false` |
+| Loading overlay via `wrap()` | Own `MaterialApp.builder`; `enableLoader: false` |
 | JWT `setAuth` | Own headers / interceptors; `clearAuth()` |
 | WebSocket `socket()` | Don’t call it; or `enableWebSocket: false` |
 | Connectivity snackbar / popover / banner | Don’t call `setConnectivity`; or `clearConnectivity()` / `ui: none` / custom `builder` |
@@ -101,7 +101,7 @@ Omit a field to leave the current value unchanged. `resetConfig()` restores pack
 | `enableLogger` | — | Legacy: both error + response logs |
 | `enableErrorLogger` | `false` | 4xx / 5xx / exceptions |
 | `enableResponseLogger` | `false` | 2xx / 3xx |
-| `sanitizeErrorMessages` | `true` | Strip Dio noise from messages |
+| `sanitizeErrorMessages` | `true` | Strip client noise from messages |
 | `maxErrorMessageLength` | `220` | Truncate overlay / `Left` text |
 | `showStatusCodeInError` | `false` | Prefix `[status]` on messages |
 | `defaultTimeoutSeconds` | `60` | Per-request `timeout` overrides |
@@ -115,7 +115,7 @@ Omit a field to leave the current value unchanged. `resetConfig()` restores pack
 | `wsDecodeJson` | `true` | Decode incoming `{...}` / `[...]` |
 | `wsMaxReconnectAttempts` | `5` | `0` = unlimited when reconnect is on |
 | `wsReconnectDelay` | `2s` | Delay between reconnects |
-| `enableConnectivity` | `false` | Opt into `connectivity_plus` |
+| `enableConnectivity` | `false` | Opt into connectivity notices |
 | `connectivityUi` | `snackbar` | `snackbar` / `banner` / `popover` / `none` |
 | `showOfflineNotice` | `true` | Show when going/staying offline |
 | `showOnlineNotice` | `true` | Brief “back online” (snackbar) |
@@ -144,11 +144,11 @@ Helpers with the same knobs: `setOverlaySettings`, `setLoggerEnabled`, `setError
 | `loader`, `resultOverlay` | AND with global overlay flags |
 | `innerData` / `innderData` | Nested `{ "data": ... }` |
 | `unwrap` | `request()` only; same envelope |
-| `cancelToken` | Re-exported Dio `CancelToken` |
+| `cancelToken` | `CancelToken` from the one_request import |
 | `interceptors` | Extra interceptors for this call |
 | `formData` | `FormData.fromMap` |
 
-Shared Dio: `OneRequest.client` (prefer `send` / `request` / `setAuth`). `OneRequest.clearCache()` dumps GET cache.
+Shared client: `OneRequest.client` (prefer `send` / `request` / `setAuth`). `OneRequest.clearCache()` dumps GET cache.
 
 ---
 
@@ -220,7 +220,7 @@ OneRequest.setAuth(
 ## Loading UI (optional)
 
 ```dart
-MaterialApp(builder: OneRequest.wrap()); // EasyLoading + connectivity host
+MaterialApp(builder: OneRequest.wrap()); // loading overlay + connectivity host
 OneRequest.initLoading;                  // same as wrap()
 OneRequest.wrap((context, child) {       // compose your overlay
   return Stack(children: [child!, const MyBanner()]);
@@ -238,7 +238,7 @@ OneRequest.loadingWidget(status: 'Saving');
 await OneRequest.dismissLoading;
 ```
 
-Skip `wrap()` if you do not want EasyLoading. Connectivity default UI then needs `connectivityOverlay` (below) or your own `onChanged` / `builder`.
+Skip `wrap()` if you do not want the built-in loading overlay. Connectivity default UI then needs `connectivityOverlay` (below) or your own `onChanged` / `builder`.
 
 ---
 
@@ -336,7 +336,7 @@ Also: `client.openSocket(...)` (uses that instance’s `baseUrl` / `headers`), `
 
 ## Connectivity (optional, off by default)
 
-Uses `connectivity_plus` only after you opt in. Interface up/down (not a full internet ping). Default UI is a snackbar; pick popover, banner, none, or a builder.
+Off until you opt in. Interface up/down (not a full internet ping). Default UI is a snackbar; pick popover, banner, none, or a builder.
 
 ```dart
 OneRequest.setConnectivity(); // snackbar + “Back online”
@@ -366,7 +366,7 @@ Read without UI: `isConnectivityEnabled()`, `connectivityUi`, `connectivityStatu
 Host widgets:
 
 ```dart
-MaterialApp(builder: OneRequest.wrap()); // EasyLoading + notices
+MaterialApp(builder: OneRequest.wrap()); // loading overlay + notices
 MaterialApp(
   builder: (context, child) =>
       OneRequest.connectivityOverlay(child: child!),
@@ -393,7 +393,7 @@ OneRequest.logger; // logging package Logger
 
 ## Re-exported types
 
-From `package:one_request/one_request.dart` you already have `CancelToken`, `Interceptor`, `FormData`, `MultipartFile`, `DioException`, `Either` / `Left` / `Right`, `EasyLoading` / `EasyLoadingMaskType`, plus this package’s `RequestType`, `ResponseType`, `ContentType`, `RequestException`, `OneSocket`, `ConnectivityUi`, `resolveSocketUri`, `resolveRequestUrl`.
+From `package:one_request/one_request.dart` you already have `CancelToken`, `Interceptor`, `FormData`, `MultipartFile`, `DioException`, `Either` / `Left` / `Right`, `EasyLoading` / `EasyLoadingMaskType`, plus this package’s `RequestType`, `ResponseType`, `ContentType`, `RequestException`, `OneSocket`, `ConnectivityUi`, `resolveSocketUri`, `resolveRequestUrl`. Add only `one_request` — do not add extra HTTP, socket, or connectivity packages.
 
 ---
 
@@ -405,7 +405,7 @@ Declared in `pubspec.yaml`: Android, iOS, web, Windows, macOS, Linux. HTTP and W
 
 ## Migrating from 2.x
 
-| 2.x (`either_dart`) | 3.x (`dart_either`) |
+| 2.x | 3.x |
 |---|---|
 | `Either<T, String>` | `Either<String, T>` |
 | `Left` = success | `Right` = success |

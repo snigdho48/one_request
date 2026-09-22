@@ -1,12 +1,10 @@
 /// one_request public API.
 ///
-/// Import only this library. Dio, Either, EasyLoading, WebSocket, and
-/// connectivity types are re-exported so apps (and Cursor) must not add
-/// `dio`, `dart_either`, `either_dart`, `flutter_easyloading`,
-/// `web_socket_channel`, or `connectivity_plus` as direct dependencies.
+/// Import only this library. HTTP, Either, loading, WebSocket, and
+/// connectivity types are available from this file. Add only `one_request`.
 ///
 /// [ResponseType] is one_request's enum (`json` / `bytes` / `stream` / `plain`).
-/// Dio's `ResponseType` is hidden to avoid a name clash.
+/// The HTTP client's `ResponseType` is hidden to avoid a name clash.
 library;
 
 export 'package:dio/dio.dart' hide ResponseType;

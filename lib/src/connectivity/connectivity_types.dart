@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// Network transport reported by connectivity_plus, without importing that package.
+/// Network transport reported by the connectivity watcher.
 enum NetworkKind {
   none,
   wifi,
@@ -81,7 +81,7 @@ typedef ConnectivityBuilder = Widget Function(
 /// Fired on every connectivity snapshot (including the first check).
 typedef ConnectivityChanged = void Function(ConnectivityStatus status);
 
-/// Injectable connectivity_plus (or a fake in tests).
+/// Injectable connectivity source (or a fake in tests).
 abstract class ConnectivitySource {
   Future<List<NetworkKind>> check();
   Stream<List<NetworkKind>> get onChanged;
